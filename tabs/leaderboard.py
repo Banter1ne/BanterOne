@@ -1,7 +1,7 @@
 from datetime import date
 import pandas as pd
 import streamlit as st
-from lib import db, ui
+from lib import buddy, db, ui
 
 
 def render() -> None:
@@ -169,10 +169,14 @@ def _render_individual_table(df: pd.DataFrame, sort_col: str,
                if str(r.get("email", "")).lower() == me_email else "")
         val = r[sort_col]
         val_str = f"${val:,.0f}" if money else f"{int(val)}"
+        icon = _buddy_icon_html(r.to_dict())
         rows_html += (
             f'<tr style="border-top:1px solid rgba(229,228,226,0.06);">'
             f'<td style="padding:10px 12px;color:var(--text-dim);">#{i+1}</td>'
-            f'<td style="padding:10px 12px;color:var(--text);font-weight:700;">{r["full_name"]}{you}</td>'
+            f'<td style="padding:10px 12px;color:var(--text);font-weight:700;">'
+            f'<div style="display:flex;align-items:center;gap:10px;">{icon}'
+            f'<div><div>{r["full_name"]}{you}</div>'
+            f'<div style="color:var(--text-dim);font-size:11px;font-weight:500;">{r.get("employee_email", "")}</div></div></div></td>'
             f'<td style="padding:10px 12px;color:var(--text-dim);">Store {r["store_id"]}</td>'
             f'<td style="padding:10px 12px;color:var(--text-dim);">{r["role"]}</td>'
             f'<td style="padding:10px 12px;text-align:right;color:var(--lime);font-weight:800;">{val_str}</td>'
@@ -194,4 +198,19 @@ def _render_individual_table(df: pd.DataFrame, sort_col: str,
         </table>
         ''',
         unsafe_allow_html=True,
+    )
+
+
+def _buddy_icon_html(row: dict) -> str:
+    email = str(row.get("email") or row.get("employee_email") or "")
+    profile = buddy.load_profile(email)
+    starter = profile.get("starter") or "spark"
+    stage_index, _ = buddy.stage_for(row, profile)
+    meta = buddy.STARTERS.get(starter, buddy.STARTERS["spark"])
+    creature = buddy.render_creature(starter, stage_index, size=70)
+    return (
+        f'<div style="width:38px;height:38px;border-radius:50%;overflow:hidden;'
+        f'background:radial-gradient(circle at 50% 35%, {meta["accent"]}44 0%, #000 70%);'
+        f'border:1px solid rgba(213,229,71,0.55);display:flex;align-items:center;'
+        f'justify-content:center;flex:0 0 auto;">{creature}</div>'
     )

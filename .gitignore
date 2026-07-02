@@ -27,6 +27,7 @@ assets/avatars/*
 # Local dev
 scratchpad/
 *.log
+data/remember_tokens.json
 
 # Editor
 .claude/

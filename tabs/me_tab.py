@@ -1,156 +1,150 @@
 import os
-import random
 import re
 import streamlit as st
-import streamlit.components.v1 as components
 
-from lib import db, rpg, stylist
+from lib import buddy, db, rpg
 
 
 def render() -> None:
     user = st.session_state.user
 
-    st.markdown("### Bantagachi")
+    st.markdown("### My Banter Buddy")
     st.caption(
         f"Level {int(user.get('level', 1))} · {int(user.get('xp', 0)):,} XP · "
         f"Store {user.get('store_id', '—')}"
     )
 
-    gender = (
-        st.session_state.get("bantagachi_gender")
-        or (user.get("gender") if isinstance(user.get("gender"), str) and user.get("gender") else "")
-    )
-    if not gender:
-        _render_gender_picker()
+    buddy_profile = buddy.load_profile(user["email"])
+    if not buddy_profile.get("starter"):
+        _render_buddy_starter_picker(user)
         return
 
-    _render_customizer(user, gender)
+    _render_buddy(user, buddy_profile)
 
     st.markdown("---")
     _render_stats(user)
     st.markdown("---")
     _render_pfp_upload()
-    _render_scanner()
     _render_league()
 
 
-# ── Type picker (Pokemon-style elemental type) ───────────────────────────────
-def _render_gender_picker() -> None:
+# ── First-time starter picker ────────────────────────────────────────────────
+def _render_buddy_starter_picker(user: dict) -> None:
     st.markdown(
         '<div class="glass-card" style="margin-bottom:18px;">'
-        '<h4 style="margin-top:0;">Pick your Bantagachi type</h4>'
+        '<h4 style="margin-top:0;">Choose your starter</h4>'
         '<p style="color:var(--text-dim);margin-bottom:0;">'
-        "Every Bantagachi has an elemental type that sets its base look. Pick "
-        "one — you can change colors and evolve later."
+        "Your Banter Buddy grows with your daily rhythm: sales momentum, "
+        "product knowledge, team energy, and consistency."
         "</p></div>",
         unsafe_allow_html=True,
     )
-    types = list(stylist.TYPES.keys())
     cols = st.columns(3)
-    for i, t in enumerate(types[:3]):
-        with cols[i]:
-            if st.button(t.upper(), use_container_width=True, key=f"type_pick_{t}"):
-                stylist.save_profile(st.session_state.user["email"],
-                                     {"type": t, "primary_color": stylist.TYPES[t]})
-                st.session_state.bantagachi_gender = t.lower()
-                rpg.save_gender(st.session_state.user["email"], t.lower())
-                st.session_state.user["gender"] = t.lower()
+    for col, starter_id in zip(cols, buddy.STARTERS):
+        meta = buddy.STARTERS[starter_id]
+        with col:
+            creature = buddy.render_creature(starter_id, 0, size=220)
+            st.markdown(
+                (
+                    f'<div class="glass-card" style="min-height:390px;text-align:center;">'
+                    f'<div style="height:210px;border-radius:18px;overflow:hidden;'
+                    f'background:radial-gradient(circle at 50% 35%, {meta["accent"]}44 0%, #000 64%);">'
+                    f'{creature}</div>'
+                    f'<div style="font-family:\'Instrument Serif\',serif;font-style:italic;'
+                    f'font-size:28px;color:var(--text);margin-top:14px;">{meta["name"]}</div>'
+                    f'<div style="color:var(--lime);font-size:10px;letter-spacing:0.2em;'
+                    f'text-transform:uppercase;font-weight:800;margin:6px 0;">{meta["role"]}</div>'
+                    f'<div style="color:var(--text-dim);font-size:13px;line-height:1.45;">'
+                    f'{meta["tagline"]}</div></div>'
+                ),
+                unsafe_allow_html=True,
+            )
+            if st.button(f"Choose {meta['name']}", use_container_width=True, key=f"choose_buddy_{starter_id}"):
+                buddy.choose_starter(user["email"], starter_id)
+                rpg.save_gender(user["email"], "buddy")
+                user["gender"] = "buddy"
                 st.rerun()
-    cols2 = st.columns(3)
-    for i, t in enumerate(types[3:6]):
-        with cols2[i]:
-            if st.button(t.upper(), use_container_width=True, key=f"type_pick_{t}"):
-                stylist.save_profile(st.session_state.user["email"],
-                                     {"type": t, "primary_color": stylist.TYPES[t]})
-                st.session_state.bantagachi_gender = t.lower()
-                rpg.save_gender(st.session_state.user["email"], t.lower())
-                st.session_state.user["gender"] = t.lower()
-                st.rerun()
 
 
-# ── Character customizer (custom SVG, no external service) ───────────────────
-def _render_customizer(user: dict, gender: str) -> None:
-    profile = stylist.load_profile(user["email"])
-    unlocked = rpg.parse_unlocked(user)
-    unlocked_piercings = [
-        iid for iid in unlocked
-        if rpg.format_item(iid) and rpg.format_item(iid)["cat"] == "piercing"
-    ]
-
+# ── Banter Buddy dashboard ───────────────────────────────────────────────────
+def _render_buddy(user: dict, profile: dict) -> None:
+    starter = profile.get("starter") or "spark"
+    meta = buddy.STARTERS.get(starter, buddy.STARTERS["spark"])
+    stage_index, stage = buddy.stage_for(user, profile)
+    next_stage = buddy.next_stage(user, profile)
+    progress = buddy.progress_to_next(user, profile)
     col_preview, col_controls = st.columns([5, 4])
 
-    with col_controls:
-        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
-        st.markdown("#### Customize")
-
-        skin_names = list(stylist.SKIN_TONES.keys())
-        skin_idx = skin_names.index(profile["skin_tone"]) if profile["skin_tone"] in skin_names else 2
-        skin = st.selectbox("Skin Tone", options=skin_names, index=skin_idx,
-                            key="stylist_skin")
-
-        hair_color = st.color_picker("Hair Color", value=profile["hair_color"],
-                                     key="stylist_hair_color")
-
-        hair_idx = stylist.HAIR_STYLES.index(profile["hair_style"]) \
-                   if profile["hair_style"] in stylist.HAIR_STYLES else 1
-        hair_style = st.selectbox("Hair Style", options=stylist.HAIR_STYLES,
-                                  index=hair_idx, key="stylist_hair_style")
-
-        eye_color = st.color_picker("Eye Color", value=profile["eye_color"],
-                                    key="stylist_eye")
-
-        outfit_color = st.color_picker("Outfit Color", value=profile["outfit_color"],
-                                       key="stylist_outfit")
-
-        equipped = st.multiselect(
-            "Equipped Piercings (from Wardrobe)",
-            options=unlocked_piercings,
-            default=profile.get("equipped_piercings", []),
-            format_func=lambda iid: rpg.format_item(iid)["name"] if rpg.format_item(iid) else iid,
-            key="stylist_equipped",
-        )
-
-        new_profile = {
-            "skin_tone":         skin,
-            "hair_color":        hair_color,
-            "hair_style":        hair_style,
-            "eye_color":         eye_color,
-            "outfit_color":      outfit_color,
-            "equipped_piercings": equipped,
-        }
-        changed = any(new_profile[k] != profile.get(k) for k in new_profile)
-        if changed:
-            if st.button("Save Bantagachi", type="primary", use_container_width=True,
-                         key="stylist_save"):
-                stylist.save_profile(user["email"], new_profile)
-                st.success("Bantagachi saved.")
-                st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
     with col_preview:
-        preview = {
-            "skin_tone":         st.session_state.get("stylist_skin", profile["skin_tone"]),
-            "hair_color":        st.session_state.get("stylist_hair_color", profile["hair_color"]),
-            "hair_style":        st.session_state.get("stylist_hair_style", profile["hair_style"]),
-            "eye_color":         st.session_state.get("stylist_eye", profile["eye_color"]),
-            "outfit_color":      st.session_state.get("stylist_outfit", profile["outfit_color"]),
-            "equipped_piercings": st.session_state.get("stylist_equipped",
-                                                        profile.get("equipped_piercings", [])),
-        }
-        svg = stylist.render_svg(preview, gender=gender, size=460)
+        creature = buddy.render_creature(starter, stage_index, size=420)
         st.markdown(
             f'<div class="glass-card" style="padding:16px;">'
             f'<div style="border-radius:20px;overflow:hidden;'
-            f'background:radial-gradient(ellipse at 50% 20%,rgba(213,229,71,0.22) 0%,#000 65%);'
-            f'aspect-ratio:4/5;">{svg}</div>'
+            f'background:radial-gradient(ellipse at 50% 20%,{meta["accent"]}44 0%,#000 65%);'
+            f'aspect-ratio:4/5;">{creature}</div>'
             f'<div style="text-align:center;margin-top:14px;font-size:10px;'
-            f'letter-spacing:0.32em;color:var(--lime);font-weight:700;">YOUR STYLIST</div>'
+            f'letter-spacing:0.32em;color:var(--lime);font-weight:700;">YOUR BANTER BUDDY</div>'
             f'<div style="text-align:center;font-family:\'Instrument Serif\',serif;'
             f'font-style:italic;font-size:22px;color:var(--text);text-transform:capitalize;">'
-            f'{gender}</div>'
+            f'{profile.get("nickname") or meta["name"]}</div>'
+            f'<div style="text-align:center;color:var(--text-dim);font-size:12px;margin-top:4px;">'
+            f'{stage["name"]} · {meta["role"]}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
+
+    with col_controls:
+        st.markdown('<div class="glass-card">', unsafe_allow_html=True)
+        st.markdown("#### Care")
+        _meter("Care", int(profile.get("care", 70)), meta["accent"])
+        _meter("Spark", int(profile.get("spark", 60)), meta["secondary"])
+        _meter("Bond", int(profile.get("bond", 50)), "#D5E547")
+        st.markdown(
+            f'<div style="color:var(--text-dim);font-size:12px;margin:12px 0;">'
+            f'Last action: <b style="color:var(--text);">{profile.get("last_action") or "None yet"}</b></div>',
+            unsafe_allow_html=True,
+        )
+        c1, c2, c3 = st.columns(3)
+        actions = [(c1, "feed", "Feed"), (c2, "train", "Train"), (c3, "cheer", "Cheer")]
+        for col, action, label in actions:
+            with col:
+                if st.button(label, use_container_width=True, key=f"buddy_{action}"):
+                    buddy.apply_care_action(user["email"], action)
+                    st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        st.markdown('<div class="glass-card" style="margin-top:14px;">', unsafe_allow_html=True)
+        st.markdown("#### Evolution")
+        if next_stage:
+            st.markdown(
+                f'<div style="color:var(--text-dim);font-size:12px;">Next form</div>'
+                f'<div style="font-family:\'Instrument Serif\',serif;font-style:italic;'
+                f'font-size:30px;color:var(--lime);">{next_stage["name"]}</div>'
+                f'<div style="background:rgba(255,255,255,0.06);border-radius:99px;height:9px;'
+                f'margin:10px 0;overflow:hidden;">'
+                f'<div style="background:linear-gradient(90deg,var(--lime),var(--lime-2));'
+                f'height:100%;width:{progress}%;"></div></div>'
+                f'<div style="color:var(--text-dim);font-size:12px;">'
+                f'Needs Level {next_stage["min_level"]} and {next_stage["min_xp"]:,} XP</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                '<div style="font-family:\'Instrument Serif\',serif;font-style:italic;'
+                'font-size:30px;color:var(--lime);">Legend form reached</div>',
+                unsafe_allow_html=True,
+            )
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
+def _meter(label: str, value: int, color: str) -> None:
+    st.markdown(
+        f'<div style="display:flex;justify-content:space-between;font-size:12px;'
+        f'color:var(--text-dim);margin-top:10px;"><span>{label}</span><span>{value}%</span></div>'
+        f'<div style="background:rgba(255,255,255,0.06);border-radius:99px;height:8px;overflow:hidden;">'
+        f'<div style="height:100%;width:{value}%;background:{color};"></div></div>',
+        unsafe_allow_html=True,
+    )
 
 
 # ── Stats column ─────────────────────────────────────────────────────────────
@@ -213,31 +207,22 @@ def _render_stats(user: dict) -> None:
         )
 
     with c3:
-        unlocked = rpg.parse_unlocked(user)
-        if not unlocked:
-            wardrobe = ('<div style="color:var(--text-dim);font-size:12px;">'
-                        "No pieces yet. Scan below.</div>")
-        else:
-            chips = ""
-            for iid in unlocked:
-                item = rpg.format_item(iid)
-                if not item:
-                    continue
-                color = rpg.RARITY_COLORS.get(item["rarity"], "#94A3B8")
-                chips += (
-                    f'<div style="display:inline-block;padding:5px 10px;border-radius:99px;'
-                    f'background:rgba(255,255,255,0.04);border:1px solid {color}55;color:{color};'
-                    f'font-size:11px;margin:2px 4px 2px 0;font-weight:600;">'
-                    f'{item["name"]}</div>'
-                )
-            wardrobe = chips
+        buddy_profile = buddy.load_profile(user["email"])
+        starter = buddy_profile.get("starter") or "spark"
+        meta = buddy.STARTERS.get(starter, buddy.STARTERS["spark"])
+        path = (
+            f'<div style="font-family:\'Instrument Serif\',serif;font-style:italic;'
+            f'font-size:28px;color:var(--lime);line-height:1;">{meta["trait"]}</div>'
+            f'<div style="color:var(--text-dim);font-size:12px;margin-top:8px;">'
+            f'{meta["tagline"]}</div>'
+        )
         st.markdown(
             f"""
             <div class="glass-card">
               <div style="color:var(--text-dim);font-size:11px;letter-spacing:0.22em;font-weight:700;margin-bottom:8px;">
-                WARDROBE
+                BUDDY PATH
               </div>
-              {wardrobe}
+              {path}
             </div>
             """,
             unsafe_allow_html=True,
@@ -255,7 +240,7 @@ def _render_pfp_upload() -> None:
               if current_mode in ("character", "photo", "initials") else 0
         mode = st.radio(
             "Show up as",
-            options=["Character", "Photo", "Initials"],
+            options=["Banter Buddy", "Photo", "Initials"],
             horizontal=True,
             index=idx,
             key="avatar_mode_radio",
@@ -270,7 +255,7 @@ def _render_pfp_upload() -> None:
             label_visibility="collapsed",
         )
 
-        chosen_mode = mode.lower()
+        chosen_mode = "character" if mode == "Banter Buddy" else mode.lower()
         needs_save = chosen_mode != current_mode
 
         if uploaded is not None:
@@ -299,29 +284,6 @@ def _render_pfp_upload() -> None:
             db.write("users", users)
             user["avatar_mode"] = chosen_mode
             st.success(f"Now showing as **{mode}**.")
-
-
-# ── Camera scanner ───────────────────────────────────────────────────────────
-def _render_scanner() -> None:
-    st.markdown("#### Scan Banter Jewelry")
-    st.caption("Point at a real piece of Banter jewelry in-store. AI identifies the SKU "
-               "and unlocks it to your Wardrobe.")
-    photo = st.camera_input("Take a photo of the piece", key="rpg_scanner",
-                            label_visibility="collapsed")
-    if photo is not None:
-        owned = set(rpg.parse_unlocked(st.session_state.user))
-        pool = [i for i in rpg.SCANNABLE_POOL if i not in owned] or rpg.SCANNABLE_POOL
-        picked = random.choice(pool)
-        added = rpg.unlock_item(st.session_state.user["email"], picked)
-        item = rpg.format_item(picked)
-        if added:
-            current = rpg.parse_unlocked(st.session_state.user)
-            current.append(picked)
-            st.session_state.user["unlocked_items"] = ",".join(current)
-            st.success(f"AI matched: **{item['name']}** — added to Wardrobe.")
-            st.balloons()
-        else:
-            st.info(f"{item['name']} — you already have this piece.")
 
 
 # ── Bantagachi League drawer ────────────────────────────────────────────────────

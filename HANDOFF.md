@@ -1,11 +1,11 @@
 # BanterONE — Session Handoff
 
-State on **2026-07-01**, mid-session. Everything below is what a new Claude
-session needs to pick up cleanly.
+State updated on **2026-07-02**. Everything below is what a new session needs
+to pick up cleanly.
 
 ## What the app is
 A Streamlit district-ops app for Banter (Signet Jewelers) with 5 tabs:
-Home Feed · My Store · Bantagachi (Me/B) · Playbook · District Arena.
+Home Feed · My Store · B / Banter Buddy tab · Playbook · District Arena.
 Backend is local CSVs in `data/`. All lime accents (Banter's FY26 rebrand
 color `#D5E547`), Instrument Serif italic for major headers, DM Sans for
 body. Bottom nav is a rounded floating island; center tab is "**B**"
@@ -25,13 +25,14 @@ streamlit run app.py
 - `lib/db.py` — local CSV adapter (swap for `st.connection('gsheets')` for persistence)
 - `lib/standards.py` — FY27 commission tiers, monthly targets, store bonus scale
 - `lib/rpg.py` — jewelry catalog, XP, league ranking, commission countdown
-- `lib/stylist.py` — Bantagachi character via **DiceBear `bottts`** style (Pokemon robots)
+- `lib/buddy.py` — Banter Buddy starters, care meters, evolution rules, local JSON persistence
+- `lib/stylist.py` — legacy DiceBear avatar module; no longer the main B tab direction
 - `lib/ui.py` — global theme, masthead, bottom nav, store badge, avatar helper
 - `tabs/home.py` — store badge + Performance Island + Daily Feed w/ reactions
 - `tabs/my_store.py` — KPI strip, Traffic/Conversion/MTD charts, Weekly Targets
 - `tabs/leaderboard.py` — Today/Monthly/YTD × Store/Individual leaderboards
 - `tabs/playbook.py` — 60+ searchable scripts (Job Aids CCCC, Power Phrases, Core Values, Who to Contact)
-- `tabs/me_tab.py` — Bantagachi creature customizer + stats + wardrobe + PFP + scanner + League
+- `tabs/me_tab.py` — Banter Buddy starter picker + care/evolution dashboard + stats + PFP + League
 
 ## Data files
 - `data/users.csv` — 22 seeded users (11 real store managers, DM + associates)
@@ -39,7 +40,8 @@ streamlit run app.py
 - `data/daily_submissions.csv` — 11 stores × 10 AM check-ins (real 7/1 data)
 - `data/individual_metrics.csv` — 14 real employee sales rows
 - `data/home_feed.csv` — 25 feed posts (author, content, is_pinned, likes/laughs/fires/party)
-- `data/stylist_profiles.json` — Bantagachi customizations, per-email
+- `data/buddy_profiles.json` — Banter Buddy starter/care state, per-email
+- `data/stylist_profiles.json` — legacy avatar customizations, per-email
 
 ## Real business data seeded
 - Fiancée's store: **3922 Cherry Creek** (Brandy A. is the SM). Demo also covers Park Meadows 3905, Aurora 242, Chapel Hills 1241.
@@ -54,13 +56,25 @@ streamlit run app.py
 - GitHub push status: user was mid-flow. Repo target = `kingsupreme89/BanterONE` (public).
 - Streamlit Cloud: user was on the deploy form. Needs repo pushed first.
 
-## What's in progress right now (pass #19)
+## Current update (pass #20)
+1. ✅ Pivoted away from inconsistent human DiceBear avatars to original Tamagotchi-style Banter Buddy creatures
+2. ✅ Added `lib/buddy.py` with three starters: Spark Buddy, Gem Buddy, Glow Buddy
+3. ✅ B tab now starts with a three-starter choice, then shows care meters and evolution progress
+4. ✅ Character mode small avatars now use Banter Buddy creature chips instead of DiceBear
+5. ✅ App shell now behaves fullscreen: wide container, hidden Streamlit header/toolbar/sidebar/footer, full-width content area, fixed bottom nav
+6. ✅ Login screen now receives the same global fullscreen shell CSS before the auth gate
+7. ✅ Removed the Scan Banter Jewelry camera section and old Wardrobe card from the B/Profile screen
+8. ✅ Saved generated starter concept art to `assets/buddies/banter-buddy-starter-concepts.png`
+9. ✅ Improved Playbook search with normalized matching and aliases for warranty/ESA, safety/security, Vault/Clienteling, etc.
+10. ⚠️ Google Sheets adapter not started. Plan unchanged: `pip install streamlit-gsheets-connection`, wrap `db.read`/`db.write` to try gsheets first with CSV fallback.
+
+## Previous pass notes (pass #19)
 1. ✅ Cherry Creek font reverted to Instrument Serif italic
 2. ✅ Reactions functional (👍 😂 🔥 🎉) — `home_feed.csv` has `party` column
 3. ✅ Me tab renamed to "**B**" in Instrument Serif italic, only slightly larger than sibling tabs
-4. ✅ Bantagachi character switched from DiceBear `personas` (humans) to **`bottts` (Pokemon-style robot creatures)**
+4. ↩️ Human avatar direction has been reversed; current direction is original Banter Buddy creatures
 5. ✅ Playbook: `Mall Security` + `FY27 Commission Ladder` titles → lime; search field container has `st-key-playbook_search_wrap` for black-bg CSS
-6. ⚠️ **Me tab customizer not fully rewritten** — `stylist.py` module was updated to a Type-based system (Fire/Water/Grass/Electric/Psychic/Shadow), with legacy `SKIN_TONES`/`HAIR_STYLES` aliases kept so the existing `me_tab.py` still runs. The customizer UI on Me tab still references old keys (`stylist_skin`, `stylist_hair_color`, etc.) — needs rewrite to use `bantagachi_type` + `bantagachi_primary` (color picker) + `Randomize creature` button, and pass `primary_color` + `seed` into `stylist.render_svg`. Failed edit at the string-match step; the new implementation lives inline in the previous session response.
+6. ✅ Me tab customizer was replaced by the starter/care/evolution Banter Buddy flow.
 7. ⚠️ **Google Sheets adapter not started.** Plan: `pip install streamlit-gsheets-connection`, wrap `db.read`/`db.write` to try gsheets first with CSV fallback. User needs to: create a Google Sheet with worksheets named to match CSV files, create a service account JSON via Google Cloud, share the sheet with the service account email, paste JSON into Streamlit Cloud secrets under `[connections.gsheets]`.
 
 ## Answers the user asked but I didn't finish responding to
@@ -95,8 +109,8 @@ Paste this prompt to the new session:
 > I'm continuing work on `/Users/user/Claude/Projects/BanterONE` — a Streamlit
 > district-ops app for Banter Jewelers. Read `HANDOFF.md` at the project root
 > for full state. Highest-priority open work:
-> (1) finish the Me tab customizer rewrite so it uses the new Type/primary_color
-> system in `lib/stylist.py`, and
+> (1) continue from the Banter Buddy starter/evolution system in `lib/buddy.py`
+> and `tabs/me_tab.py`, and
 > (2) wire up Google Sheets as the persistence backend (`lib/db.py`) with a CSV
 > fallback so the user can push code changes without wiping demo data.
 > Then continue whatever the user asks next.

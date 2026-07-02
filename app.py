@@ -17,18 +17,23 @@ st.set_page_config(
 # 48-hour TTL purge on cold start.
 db.purge_feed_older_than(48)
 
-# ── Auth gate ────────────────────────────────────────────────────────────────
-if "user" not in st.session_state:
-    auth.render_login_page()
-    st.stop()
-
 # ── Session defaults ─────────────────────────────────────────────────────────
 st.session_state.setdefault("current_tab", "home")
 st.session_state.setdefault("theme", "dark")
 st.session_state.setdefault("sound_enabled", True)
 
-# ── Theme + header ───────────────────────────────────────────────────────────
+# ── Theme shell ──────────────────────────────────────────────────────────────
 ui.inject_theme()
+
+# ── Auth gate ────────────────────────────────────────────────────────────────
+if "user" not in st.session_state:
+    auth.restore_remembered_user()
+
+if "user" not in st.session_state:
+    auth.render_login_page()
+    st.stop()
+
+# ── Header ──────────────────────────────────────────────────────────────────
 ui.render_header()
 
 # ── Tab dispatch (no st.tabs — custom bottom nav owns routing) ──────────────

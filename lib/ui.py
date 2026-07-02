@@ -66,13 +66,51 @@ html, body, [data-testid="stAppViewContainer"] {{
   background: var(--bg) !important;
   color: var(--text);
 }}
+html, body {{
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 100vh !important;
+  overflow-x: hidden !important;
+}}
 [data-testid="stAppViewContainer"] {{
   background:
     radial-gradient(ellipse at 50% -10%, rgba(213,229,71,0.10) 0%, transparent 40%),
     var(--bg) !important;
+  min-height: 100vh !important;
 }}
-[data-testid="stHeader"] {{ background: transparent !important; }}
-[data-testid="stMain"] {{ padding-bottom: 120px !important; }}
+[data-testid="stHeader"],
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+#MainMenu,
+footer {{
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+}}
+[data-testid="stMain"] {{
+  padding: 0 0 120px 0 !important;
+  min-height: 100vh !important;
+}}
+[data-testid="stMainBlockContainer"],
+.block-container {{
+  max-width: none !important;
+  width: 100% !important;
+  padding: 10px clamp(12px, 2.6vw, 42px) 0 !important;
+}}
+[data-testid="stSidebar"],
+[data-testid="collapsedControl"] {{
+  display: none !important;
+}}
+@media (max-width: 760px) {{
+  [data-testid="stMainBlockContainer"],
+  .block-container {{
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }}
+  [data-testid="stMain"] {{
+    padding-bottom: 104px !important;
+  }}
+}}
 
 /* Major headers = lime italic serif — matching the "Banter" wordmark on the masthead.
    !important defeats Streamlit default bold on h3 which triggers synthetic-bold
@@ -423,14 +461,20 @@ p, div, span, li, label {{ color: var(--text); font-family: 'DM Sans', sans-seri
   box-shadow: none !important;
 }}
 
-/* ── Center "B" — Bantagachi mark, Instrument Serif italic, only slightly larger ── */
+/* ── Center "B" — branded profile mark ─────────────────────────────────── */
 .st-key-bottom_nav [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) .stButton button,
 .st-key-bottom_nav [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) .stButton button p {{
   font-family: 'Instrument Serif', Georgia, serif !important;
   font-style: italic !important;
   font-weight: 400 !important;
-  font-size: 16px !important;
+  font-size: 24px !important;
   letter-spacing: -0.01em !important;
+  -webkit-text-stroke: 0.35px currentColor !important;
+  text-shadow: 0 0 0 currentColor, 0 0 12px rgba(213,229,71,0.28) !important;
+}}
+.st-key-bottom_nav [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3) .stButton button {{
+  padding-left: 22px !important;
+  padding-right: 22px !important;
 }}
 
 /* Ensure light mode overrides the dark nav bg */
@@ -614,6 +658,17 @@ label[data-baseweb="checkbox"] > div[aria-checked="true"] {{ background: var(--l
 }}
 .st-key-weekly_targets_editor .stButton button[kind="primary"] {{ height: 48px !important; }}
 
+/* Banter Buddy customizer: lime primary button with readable black text */
+.st-key-avatar_customizer .stButton button[kind="primary"],
+.st-key-avatar_customizer .stButton button[kind="primary"] p,
+.st-key-avatar_customizer .stButton button[kind="primary"] * {{
+  color: #000000 !important;
+  font-weight: 800 !important;
+}}
+.st-key-avatar_customizer .stButton button[kind="primary"] p {{
+  background: transparent !important;
+}}
+
 /* Playbook search — pure black bg */
 .st-key-playbook_search_wrap [data-testid="stTextInput"] input {{
   background: #000000 !important;
@@ -687,23 +742,21 @@ def _render_settings_popover() -> None:
             st.rerun()
 
 
-def _character_svg(gender: str, size: int) -> str:
-    """Minimalist stylist silhouette — no emoji, scales cleanly to any size."""
-    inner = int(size * 0.62)
-    # Slight silhouette variation by gender (hair length hint via body silhouette curve).
-    if gender == "female":
-        body_d = "M4 22 C4 15 8 12 12 12 C16 12 20 15 20 22 L20 24 L4 24 Z"
-        head = '<circle cx="12" cy="7" r="4.2"/>'
-    elif gender == "nonbinary":
-        body_d = "M5 22 Q5 14 12 14 T19 22 L19 24 L5 24 Z"
-        head = '<circle cx="12" cy="8" r="4"/>'
-    else:
-        body_d = "M4.5 22 C4.5 15.5 8 13 12 13 C16 13 19.5 15.5 19.5 22 L19.5 24 L4.5 24 Z"
-        head = '<circle cx="12" cy="8" r="4"/>'
+def _character_img(user: dict, size: int) -> str:
+    """Return the user's Banter Buddy creature chip."""
+    from . import buddy
+    profile = buddy.load_profile(user.get("email", "banterone@local"))
+    starter = profile.get("starter") or "spark"
+    stage_index, _ = buddy.stage_for(user, profile)
+    meta = buddy.STARTERS.get(starter, buddy.STARTERS["spark"])
+    creature = buddy.render_creature(starter, stage_index, size=max(54, size * 2))
     return (
-        f'<svg viewBox="0 0 24 24" style="width:{inner}px;height:{inner}px;" '
-        f'fill="currentColor" xmlns="http://www.w3.org/2000/svg">'
-        f'{head}<path d="{body_d}"/></svg>'
+        f'<div style="width:{size}px;height:{size}px;border-radius:50%;'
+        f'overflow:hidden;background:radial-gradient(circle at 50% 35%, {meta["accent"]}44 0%, #000 70%);'
+        f'border:2px solid var(--lime);box-shadow:0 0 12px rgba(213,229,71,0.35);'
+        f'display:flex;align-items:center;justify-content:center;">'
+        f'<div style="width:{int(size * 1.8)}px;height:{int(size * 1.8)}px;'
+        f'display:flex;align-items:center;justify-content:center;">{creature}</div></div>'
     )
 
 
@@ -724,7 +777,7 @@ def _resolve_avatar_mode(user: dict) -> str:
 
 
 def _avatar_html(user: dict, size: int = 40) -> str:
-    """Return an avatar chip: photo, character emoji, or initials — user's choice."""
+    """Return an avatar chip: photo, Banter Buddy, or initials — user's choice."""
     import base64
     from pathlib import Path
     mode = _resolve_avatar_mode(user)
@@ -746,16 +799,7 @@ def _avatar_html(user: dict, size: int = 40) -> str:
                     pass  # fall through to initials
 
     if mode == "character":
-        gender = str(user.get("gender", "")).lower()
-        hair = user.get("hair_color") or "#D5E547"
-        svg = _character_svg(gender, size)
-        return (
-            f'<div style="width:{size}px;height:{size}px;border-radius:50%;'
-            f'background:radial-gradient(circle at 50% 40%, {hair}55 0%, #000 70%);'
-            f'display:flex;align-items:center;justify-content:center;'
-            f'color:var(--lime);border:2px solid var(--lime);'
-            f'box-shadow:0 0 12px rgba(213,229,71,0.35);">{svg}</div>'
-        )
+        return _character_img(user, size)
 
     # initials fallback
     name = user.get("full_name", "?")

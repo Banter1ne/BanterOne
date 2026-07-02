@@ -4,9 +4,16 @@ Swap to `streamlit-msal` (Azure AD) later — `verify_credentials` is the only
 call site that changes.
 """
 from __future__ import annotations
+from datetime import datetime, timedelta
 import hashlib
+import json
+from pathlib import Path
+import secrets
 import streamlit as st
 from . import db
+
+REMEMBER_PATH = Path("data/remember_tokens.json")
+REMEMBER_DAYS = 14
 
 
 def _hash(pw: str) -> str:
@@ -24,7 +31,71 @@ def verify_credentials(email: str, password: str) -> dict | None:
     return row.to_dict()
 
 
+def _load_tokens() -> dict:
+    if not REMEMBER_PATH.exists():
+        return {}
+    try:
+        return json.loads(REMEMBER_PATH.read_text())
+    except Exception:
+        return {}
+
+
+def _save_tokens(data: dict) -> None:
+    REMEMBER_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REMEMBER_PATH.write_text(json.dumps(data, indent=2))
+
+
+def _lookup_user(email: str) -> dict | None:
+    users = db.read("users")
+    hit = users[users["email"].str.lower() == email.strip().lower()]
+    if hit.empty:
+        return None
+    return hit.iloc[0].to_dict()
+
+
+def remember_user(email: str) -> str:
+    token = secrets.token_urlsafe(32)
+    expires = datetime.now() + timedelta(days=REMEMBER_DAYS)
+    data = _load_tokens()
+    data[token] = {"email": email.lower(), "expires_at": expires.isoformat(timespec="seconds")}
+    _save_tokens(data)
+    return token
+
+
+def restore_remembered_user() -> bool:
+    token = st.query_params.get("remember", "")
+    if isinstance(token, list):
+        token = token[0] if token else ""
+    if not token or "user" in st.session_state:
+        return False
+    data = _load_tokens()
+    record = data.get(token)
+    if not record:
+        return False
+    try:
+        expires = datetime.fromisoformat(record["expires_at"])
+    except Exception:
+        expires = datetime.min
+    if expires < datetime.now():
+        data.pop(token, None)
+        _save_tokens(data)
+        return False
+    user = _lookup_user(record.get("email", ""))
+    if not user:
+        return False
+    st.session_state.user = user
+    return True
+
+
 def logout() -> None:
+    token = st.query_params.get("remember", "")
+    if isinstance(token, list):
+        token = token[0] if token else ""
+    if token:
+        data = _load_tokens()
+        data.pop(token, None)
+        _save_tokens(data)
+    st.query_params.clear()
     st.session_state.pop("user", None)
     st.rerun()
 
@@ -60,12 +131,15 @@ def render_login_page() -> None:
             password = st.text_input("Password", type="password",
                                      label_visibility="collapsed",
                                      placeholder="Password")
+            remember = st.checkbox("Stay signed in on this browser", value=True)
             submitted = st.form_submit_button("Continue", use_container_width=True)
 
         if submitted:
             user = verify_credentials(email, password)
             if user:
                 st.session_state.user = user
+                if remember:
+                    st.query_params["remember"] = remember_user(user["email"])
                 st.rerun()
             else:
                 st.error("We couldn't find that account. Check your email and password.")

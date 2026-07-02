@@ -1,4 +1,5 @@
 import streamlit as st
+import re
 from lib import standards, ui
 
 
@@ -274,11 +275,12 @@ def render() -> None:
 
 
 def _render_search_results(query: str) -> None:
-    q = query.lower()
-    hits = [
-        (section, title, body) for section, title, body in PLAYBOOK
-        if q in title.lower() or q in body.lower() or q in section.lower()
-    ]
+    hits = []
+    for section, title, body in PLAYBOOK:
+        score = _search_score(query, section, title, body)
+        if score:
+            hits.append((score, section, title, body))
+    hits.sort(key=lambda row: (-row[0], row[1], row[2]))
     if not hits:
         st.markdown(
             f'<div class="glass-card" style="text-align:center;padding:32px;">'
@@ -295,7 +297,7 @@ def _render_search_results(query: str) -> None:
         f'{len(hits)} RESULT{"S" if len(hits) != 1 else ""}</div>',
         unsafe_allow_html=True,
     )
-    for section, title, body in hits:
+    for _, section, title, body in hits:
         body_hl = _highlight(body, query)
         title_hl = _highlight(title, query)
         st.markdown(
@@ -315,8 +317,10 @@ def _render_search_results(query: str) -> None:
 def _highlight(text: str, query: str) -> str:
     if not query:
         return text
-    import re
-    esc = re.escape(query)
+    tokens = _query_terms(query)
+    if not tokens:
+        return text
+    esc = "|".join(re.escape(token) for token in sorted(tokens, key=len, reverse=True))
     return re.sub(
         f"({esc})",
         r'<span style="background:rgba(213,229,71,0.28);color:var(--lime);'
@@ -324,6 +328,53 @@ def _highlight(text: str, query: str) -> str:
         text,
         flags=re.IGNORECASE,
     )
+
+
+def _query_terms(query: str) -> list[str]:
+    aliases = {
+        "credit": ["credit", "card", "payment"],
+        "warranty": ["warranty", "esa", "service"],
+        "protection": ["protection", "esa", "service"],
+        "safety": ["safety", "security", "emergency", "incident"],
+        "security": ["security", "smc", "emergency", "incident"],
+        "phone": ["phone", "contact", "call"],
+        "contact": ["contact", "email", "phone", "call"],
+        "st jude": ["st jude", "stj", "donation"],
+        "stjude": ["st jude", "stj", "donation"],
+        "vault": ["vault", "rewards", "clienteling"],
+        "commission": ["commission", "tier", "fy27", "esa", "piercing"],
+    }
+    normalized = _normalize(query)
+    words = [w for w in normalized.split() if len(w) > 1]
+    terms = set(words)
+    if normalized:
+        terms.add(normalized)
+    for key, values in aliases.items():
+        if key in normalized:
+            terms.update(values)
+    return sorted(terms)
+
+
+def _normalize(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", text.lower()).strip()
+
+
+def _search_score(query: str, section: str, title: str, body: str) -> int:
+    haystack = _normalize(f"{section} {title} {body}")
+    terms = _query_terms(query)
+    if not terms:
+        return 0
+    score = 0
+    for term in terms:
+        normalized_term = _normalize(term)
+        if not normalized_term:
+            continue
+        if normalized_term in haystack:
+            score += 3 if normalized_term in _normalize(title) else 1
+    query_norm = _normalize(query)
+    if query_norm and query_norm in haystack:
+        score += 8
+    return score
 
 
 def _card(title: str, rows: list) -> None:
@@ -348,14 +399,21 @@ def _card(title: str, rows: list) -> None:
 
 
 def _tier_table() -> None:
+    annual_tab, monthly_tab = st.tabs(["Annual Levels", "Monthly Targets"])
+
+    with annual_tab:
+        _annual_tier_table()
+    with monthly_tab:
+        _monthly_tier_table()
+
+
+def _annual_tier_table() -> None:
     rows = ""
     for tier in standards.COMMISSION_TIERS:
-        period_target = standards.period_target_for(tier["annual_threshold"], "July")
         rows += (
             '<tr style="border-top:1px solid rgba(229,228,226,0.06);">'
             f'<td style="padding:10px 12px;color:var(--lime);font-weight:800;">L{tier["level"]}</td>'
             f'<td style="padding:10px 12px;color:var(--text);">${tier["annual_threshold"]:,}</td>'
-            f'<td style="padding:10px 12px;color:var(--text);">${period_target:,.0f}</td>'
             f'<td style="padding:10px 12px;text-align:right;color:var(--lime);font-weight:800;">'
             f'{tier["rate"]*100:.2f}%</td>'
             '</tr>'
@@ -364,15 +422,49 @@ def _tier_table() -> None:
         (
             '<div class="glass-card" style="padding:0;overflow:hidden;">'
             '<div style="padding:14px 18px;font-family:\'DM Sans\',sans-serif;font-weight:700;'
-            'letter-spacing:0.2em;font-size:14px;color:var(--lime);text-transform:uppercase;">FY27 COMMISSION LADDER</div>'
+            'letter-spacing:0.2em;font-size:14px;color:var(--lime);text-transform:uppercase;">FY27 ANNUAL LEVELS</div>'
             '<table style="width:100%;border-collapse:collapse;">'
             '<thead><tr style="color:var(--text-dim);font-size:11px;letter-spacing:0.22em;'
             'text-align:left;font-weight:700;">'
             '<th style="padding:10px 12px;">TIER</th>'
             '<th style="padding:10px 12px;">ANNUAL THRESHOLD</th>'
-            '<th style="padding:10px 12px;">JULY PERIOD TARGET</th>'
             '<th style="padding:10px 12px;text-align:right;">RATE</th>'
             f'</tr></thead><tbody>{rows}</tbody></table></div>'
+        ),
+        unsafe_allow_html=True,
+    )
+
+
+def _monthly_tier_table() -> None:
+    months = list(standards.MONTHLY_PERCENT.keys())
+    header = ''.join(
+        f'<th style="padding:10px 12px;text-align:right;">{month[:3].upper()}</th>'
+        for month in months
+    )
+    rows = ""
+    for tier in standards.COMMISSION_TIERS:
+        month_cells = ""
+        for month in months:
+            target = standards.period_target_for(tier["annual_threshold"], month)
+            month_cells += f'<td style="padding:10px 12px;text-align:right;color:var(--text);">${target:,.0f}</td>'
+        rows += (
+            '<tr style="border-top:1px solid rgba(229,228,226,0.06);">'
+            f'<td style="padding:10px 12px;color:var(--lime);font-weight:800;position:sticky;left:0;background:var(--panel);">L{tier["level"]}</td>'
+            f'{month_cells}'
+            '</tr>'
+        )
+    st.markdown(
+        (
+            '<div class="glass-card" style="padding:0;overflow-x:auto;">'
+            '<div style="padding:14px 18px;font-family:\'DM Sans\',sans-serif;font-weight:700;'
+            'letter-spacing:0.2em;font-size:14px;color:var(--lime);text-transform:uppercase;">12-MONTH COMMISSION TARGETS</div>'
+            '<div style="padding:0 18px 12px;color:var(--text-dim);font-size:12px;">'
+            'Monthly targets are the annual tier thresholds weighted by the FY27 month percentages.</div>'
+            '<table style="min-width:980px;width:100%;border-collapse:collapse;">'
+            '<thead><tr style="color:var(--text-dim);font-size:11px;letter-spacing:0.18em;'
+            'text-align:left;font-weight:700;">'
+            '<th style="padding:10px 12px;position:sticky;left:0;background:var(--panel);">TIER</th>'
+            f'{header}</tr></thead><tbody>{rows}</tbody></table></div>'
         ),
         unsafe_allow_html=True,
     )
