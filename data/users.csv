@@ -1,0 +1,23 @@
+email,password_hash,full_name,store_id,role,avatar_url,avatar_mode,hair_color,gender,unlocked_items,level,xp,fy26_annual_sales,created_at
+dm@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Tasha Gerold,DISTRICT,District Manager,,,#D5E547,,sj_diamond,1,0,340000,2026-02-01
+brandy.a@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Brandy A.,3922,Store Manager,assets/avatars/brandy_a_banter_com.jpg,photo,#D5E547,female,sj_gold,1,0,340000,2026-02-01
+trinity.b@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Trinity B.,123,Store Manager,,,#D5E547,,sj_gold,1,0,215000,2026-02-01
+hannah.f@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Hannah F.,242,Store Manager,,,#D5E547,,sj_gold,1,0,285000,2026-02-01
+estrella.m@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Estrella M.,907,Store Manager,,,#D5E547,,sj_diamond,1,0,240000,2026-02-01
+claudia.g@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Claudia G.,1026,Store Manager,,,#D5E547,,sj_diamond,1,0,260000,2026-02-01
+steven.v@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Steven V.,1241,Store Manager,,,#D5E547,,sj_gold,1,0,225000,2026-02-01
+marlena.r@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Marlena R.,1332,Store Manager,,,#D5E547,,sj_diamond,1,0,210000,2026-02-01
+evyn.j@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Evyn J.,2595,Store Manager,,,#D5E547,,sj_gold,1,0,310000,2026-02-01
+dionne.f@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Dionne F.,3709,Store Manager,,,#D5E547,,sj_diamond,1,0,180000,2026-02-01
+emily.m@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Emily M.,3739,Store Manager,,,#D5E547,,sj_diamond,1,0,220000,2026-02-01
+gina.g@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Gina G.,3905,Store Manager,,,#D5E547,,sj_gold,1,0,325000,2026-02-01
+cc_assoc1@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Cherry Creek Associate 1,3922,Key Sales Associate,,,,,sj_supporter,1,0,105000,2026-03-01
+cc_assoc2@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Cherry Creek Associate 2,3922,Key Sales Associate,,,,,sj_supporter,1,0,72000,2026-04-01
+cc_piercer@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Cherry Creek Piercer,3922,Body Piercer,,,,,sj_supporter,1,0,0,2026-02-01
+pm_assoc1@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Park Meadows Associate 1,3905,Key Sales Associate,,,,,sj_supporter,1,0,98000,2026-03-01
+pm_assoc2@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Park Meadows Associate 2,3905,Key Sales Associate,,,,,sj_supporter,1,0,65000,2026-05-01
+pm_piercer@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Park Meadows Piercer,3905,Body Piercer,,,,,sj_supporter,1,0,0,2026-02-15
+aurora_assoc1@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Aurora Associate 1,242,Key Sales Associate,,,,,sj_supporter,1,0,92000,2026-03-01
+aurora_assoc2@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Aurora Associate 2,242,Key Sales Associate,,,,,sj_supporter,1,0,61000,2026-04-15
+chapel_assoc1@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Chapel Hills Associate 1,1241,Key Sales Associate,,,,,sj_supporter,1,0,86000,2026-03-15
+chapel_assoc2@banter.com,315e820f43735efe67a9d48a81992319d7444dd3029d08570ed868149af009b5,Chapel Hills Associate 2,1241,Key Sales Associate,,,,,sj_supporter,1,0,54000,2026-05-01

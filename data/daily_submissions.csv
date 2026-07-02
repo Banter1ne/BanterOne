@@ -1,0 +1,12 @@
+sub_id,timestamp,store_id,submitted_by,window_type,plan,bold,ep,esa,avt,trans,po,stj
+S_001,2026-07-01 10:05:00,3922,brandy.a@banter.com,10:00 AM Check-In,1500,1780,4,3,165.00,11,2,25
+S_002,2026-07-01 10:08:00,3905,gina.g@banter.com,10:00 AM Check-In,1450,1620,3,2,158.00,10,2,22
+S_003,2026-07-01 10:12:00,242,hannah.f@banter.com,10:00 AM Check-In,1250,1380,2,2,144.00,10,1,18
+S_004,2026-07-01 10:15:00,1241,steven.v@banter.com,10:00 AM Check-In,1150,1240,2,1,138.00,9,1,15
+S_005,2026-07-01 10:18:00,907,estrella.m@banter.com,10:00 AM Check-In,1120,1310,3,2,146.00,9,2,20
+S_006,2026-07-01 10:21:00,3739,emily.m@banter.com,10:00 AM Check-In,1080,1420,2,3,158.00,9,2,32
+S_007,2026-07-01 10:25:00,2595,evyn.j@banter.com,10:00 AM Check-In,1380,1490,3,2,152.00,10,2,18
+S_008,2026-07-01 10:28:00,1332,marlena.r@banter.com,10:00 AM Check-In,1080,1180,2,1,142.00,8,1,14
+S_009,2026-07-01 10:33:00,1026,claudia.g@banter.com,10:00 AM Check-In,1180,1260,2,2,145.00,9,2,16
+S_010,2026-07-01 10:36:00,3709,dionne.f@banter.com,10:00 AM Check-In,920,1050,2,1,135.00,8,1,22
+S_011,2026-07-01 10:40:00,123,trinity.b@banter.com,10:00 AM Check-In,1050,980,1,1,140.00,7,1,12

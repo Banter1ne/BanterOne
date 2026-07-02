@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Uploads (don't commit user avatars — they're user-generated)
+assets/avatars/*
+!assets/avatars/.gitkeep
+
+# Local dev
+scratchpad/
+*.log
+
+# Editor
+.claude/
