@@ -247,6 +247,11 @@
       color: var(--soft);
       font-size: 11px;
     }
+    .reaction.active {
+      background: rgba(198,255,58,.12);
+      border-color: rgba(198,255,58,.4);
+      color: var(--lime);
+    }
     .flair {
       border-radius: 999px;
       padding: 3px 8px;
@@ -672,6 +677,7 @@
       charges: { feed: 0, train: 0, cheer: 0 },
       chargesEarned: false,
       buddy: { level: 2, xp: 140, xpNext: 250, care: 72, spark: 45, bond: 61 },
+      myReactions: {},
       arenaScope: "today",
       individualMetric: "sales",
       train: null,
@@ -1058,7 +1064,7 @@
     const pct = (value) => `${Math.max(0, Math.min(100, value))}%`;
 
     const SAVE_VERSION = 2;
-    const SAVE_KEYS = ["buddy", "charges", "chargesEarned", "feed", "toggles", "selectedUserEmail", "tab", "rubies", "unread"];
+    const SAVE_KEYS = ["buddy", "charges", "chargesEarned", "feed", "toggles", "selectedUserEmail", "tab", "rubies", "unread", "myReactions"];
 
     function saveState() {
       try {
@@ -1262,38 +1268,161 @@
     }
 
     function reaction(id, key, emoji, count) {
-      return `<button class="reaction" data-action="react" data-id="${id}" data-key="${key}"><span>${emoji}</span><span>${count}</span></button>`;
+      const active = state.myReactions[`${id}_${key}`] ? " active" : "";
+      return `<button class="reaction${active}" data-action="react" data-id="${id}" data-key="${key}"><span>${emoji}</span><span>${count}</span></button>`;
     }
 
     function storeScreen() {
       const user = activeUser();
       const store = activeStore();
-      const submission = submissionForStore(store.id);
-      const planPct = Math.round((submission.bold / store.dailyPlan) * 100);
+      const sub = submissionForStore(store.id);
+      const planPct = Math.round((sub.bold / store.dailyPlan) * 100);
+      const weeklyPlan = store.dailyPlan * 7;
+      const mtdSales = sub.bold * 2;
+      const mtdPlan = store.dailyPlan * 30;
+      const mtdPct = Math.round((mtdSales / mtdPlan) * 100);
+      const convRate = sub.trans ? Math.round((sub.trans / (sub.trans + 8)) * 100) : 0;
+      const esaPct = sub.trans ? Math.round((sub.esa / sub.trans) * 100) : 0;
+      const epPct = sub.trans ? Math.round((sub.ep / sub.trans) * 100) : 0;
+
+      const team = users.filter(u => u.storeId === store.id);
+      const teamMetrics = team.map(u => {
+        const m = individualMetrics.find(im => im.email === u.email) || { sales: 0, piercingSales: 0, esaSales: 0, piercings: 0, esaCount: 0 };
+        return { ...u, ...m };
+      }).sort((a, b) => b.sales - a.sales);
+
+      const storeBoard = buildStoreBoard("today");
+      const rankIndex = store.id === "DISTRICT" ? 0 : storeBoard.findIndex(row => row.id === store.id);
+      const rankText = rankIndex >= 0 ? `#${rankIndex + 1}` : "--";
+
+      function metricRow(label, value, goal, unit = "") {
+        const pct = goal ? Math.min(100, Math.round((value / goal) * 100)) : 0;
+        const clr = pct >= 100 ? "var(--lime)" : "var(--text)";
+        const display = typeof value === "number" ? value.toLocaleString() : value;
+        const goalStr = goal ? ` / ${unit}${goal.toLocaleString()} · ${pct}%` : "";
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+          <div style="font-size:12px;color:var(--soft)">${label}</div>
+          <div style="text-align:right"><span style="font-size:14px;font-weight:700;color:${clr}">${unit}${display}</span>
+          ${goal ? `<span style="font-size:10px;color:var(--muted)">${goalStr}</span>` : ""}</div>
+        </div>`;
+      }
+
       return `
         <section class="screen top-space">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
             <h1 class="serif" style="font-size:26px;margin:0">${store.id === "DISTRICT" ? "District View" : "My Store"}</h1>
             ${topCluster()}
           </div>
+
           <div class="card store-card">
             <div class="eyebrow">${store.id === "DISTRICT" ? "District" : `Store ${store.id}`}</div>
             <div class="serif store-title">${store.name}</div>
             <div class="caption">${store.mall}${store.city ? ` · ${store.city}${store.state ? `, ${store.state}` : ""}` : ""}</div>
             <div class="caption">${store.id === "DISTRICT" ? `Signed in as ${user.name}` : `Manager: ${store.manager} · ${store.phone}`}</div>
+            <div class="store-card-cal"><button class="cal-icon-btn" data-action="open-calendar" aria-label="Calendar">📅</button></div>
           </div>
+
           <div class="neon-spacer compact"></div>
+          <div class="section-row"><div class="section-title">Today’s Performance</div><div class="post-time">District Rank ${rankText}</div></div>
           <div class="kpis">
-            ${kpi("Today Sales", money(submission.bold), `${planPct}% of ${money(store.dailyPlan)} plan`, planPct >= 100)}
-            ${kpi("Transactions", submission.trans, `${money(submission.avt)} average ticket`)}
-            ${kpi("Ear Piercings", submission.ep, `${submission.po} payment options`, true)}
-            ${kpi("St. Jude", money(submission.stj), "Today's round-ups")}
+            ${kpi("Sales", money(sub.bold), `${planPct}% of ${money(store.dailyPlan)}`, planPct >= 100)}
+            ${kpi("Transactions", sub.trans, `${money(sub.avt)} avg ticket`)}
+            ${kpi("Piercings", sub.ep, `${epPct}% attach rate`, sub.ep >= 3)}
+            ${kpi("ESA / Warranty", sub.esa, `${esaPct}% attach rate`, sub.esa >= 2)}
           </div>
+          <div class="kpis" style="margin-top:6px">
+            ${kpi("Payment Options", sub.po, `${sub.trans ? Math.round(sub.po/sub.trans*100) : 0}% of trans`)}
+            ${kpi("St. Jude", money(sub.stj), "Today’s round-ups")}
+            ${kpi("Conversion", `${convRate}%`, `${sub.trans + 8} traffic est.`, convRate >= 35)}
+            ${kpi("MTD Pace", money(mtdSales), `${mtdPct}% of ${money(mtdPlan)}`, mtdPct >= 90)}
+          </div>
+
           <div class="neon-spacer left"></div>
-          <div class="card post">
-            <div class="eyebrow">Weekly Targets</div>
-            <div class="serif store-title">Plan $25,000 · EP 28 · ESA 22 · PO 12</div>
-            <div class="caption">This mirrors the existing Store tab’s manager target area. Editing is still UI-only in this redesign build.</div>
+          <div class="section-row"><div class="section-title">Daily Metrics</div></div>
+          <div class="card" style="padding:14px">
+            ${metricRow("Bold / Sales", sub.bold, store.dailyPlan, "$")}
+            ${metricRow("Transactions", sub.trans, Math.round(store.dailyPlan / 160), "")}
+            ${metricRow("Average Ticket", sub.avt, 155, "$")}
+            ${metricRow("Ear Piercings", sub.ep, 4, "")}
+            ${metricRow("ESA Warranties", sub.esa, 3, "")}
+            ${metricRow("Payment Options", sub.po, 2, "")}
+            ${metricRow("St. Jude", sub.stj, 30, "$")}
+          </div>
+
+          <div class="neon-spacer"></div>
+          <div class="section-row"><div class="section-title">Weekly Targets</div></div>
+          <div class="card" style="padding:14px">
+            ${metricRow("Weekly Plan", sub.bold * 5, weeklyPlan, "$")}
+            ${metricRow("Ear Piercings", sub.ep * 5, 28, "")}
+            ${metricRow("ESA Warranties", sub.esa * 5, 22, "")}
+            ${metricRow("Payment Options", sub.po * 5, 12, "")}
+            ${metricRow("St. Jude", sub.stj * 5, 150, "$")}
+          </div>
+
+          <div class="neon-spacer left"></div>
+          <div class="section-row"><div class="section-title">MTD Progress</div><div class="post-time">${new Date().toLocaleDateString("en-US", { month: "short" })} · Day ${new Date().getDate()}</div></div>
+          <div class="card" style="padding:14px">
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:12px;color:var(--soft)">Month-to-Date Sales</span>
+              <span style="font-size:14px;font-weight:700;color:var(--lime)">${money(mtdSales)}</span>
+            </div>
+            <div class="track" style="height:8px;margin-bottom:6px"><div class="fill" style="width:${Math.min(100, mtdPct)}%"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">
+              <span>${mtdPct}% of monthly plan</span>
+              <span>Goal: ${money(mtdPlan)}</span>
+            </div>
+            <div style="margin-top:14px;display:flex;justify-content:space-between;margin-bottom:8px">
+              <span style="font-size:12px;color:var(--soft)">MTD Piercings</span>
+              <span style="font-size:14px;font-weight:700">${sub.ep * 2}</span>
+            </div>
+            <div class="track" style="height:8px;margin-bottom:6px"><div class="fill blue" style="width:${Math.min(100, Math.round(sub.ep*2/56*100))}%"></div></div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted)">
+              <span>${Math.round(sub.ep*2/56*100)}% of monthly goal</span>
+              <span>Goal: 56</span>
+            </div>
+          </div>
+
+          ${teamMetrics.length > 0 ? `
+          <div class="neon-spacer"></div>
+          <div class="section-row"><div class="section-title">Team Roster</div><div class="post-time">${teamMetrics.length} members</div></div>
+          ${teamMetrics.map(tm => `
+            <div class="card" style="padding:12px;margin-bottom:8px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+                <div class="avatar" style="width:34px;height:34px;font-size:11px">${(tm.name || "?").split(" ").map(p => p[0]).join("").slice(0,2)}</div>
+                <div style="flex:1">
+                  <div style="font-size:13px;font-weight:700">${tm.name}</div>
+                  <div style="font-size:10px;color:var(--muted)">${tm.role}</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:14px;font-weight:700;color:var(--lime)">${money(tm.sales)}</div>
+                  <div style="font-size:10px;color:var(--muted)">sales</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                <div style="text-align:center;padding:6px;background:var(--bg);border-radius:8px">
+                  <div style="font-size:13px;font-weight:700">${tm.piercings}</div>
+                  <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Piercings</div>
+                </div>
+                <div style="text-align:center;padding:6px;background:var(--bg);border-radius:8px">
+                  <div style="font-size:13px;font-weight:700">${tm.esaCount}</div>
+                  <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">ESA</div>
+                </div>
+                <div style="text-align:center;padding:6px;background:var(--bg);border-radius:8px">
+                  <div style="font-size:13px;font-weight:700">${money(tm.esaSales)}</div>
+                  <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Warranty $</div>
+                </div>
+              </div>
+            </div>
+          `).join("")}` : ""}
+
+          <div class="neon-spacer left"></div>
+          <div class="section-row"><div class="section-title">Store Goals</div></div>
+          <div class="card" style="padding:14px">
+            <div class="eyebrow" style="margin-bottom:10px">FY27 Annual Targets</div>
+            ${metricRow("Annual Sales", mtdSales * 6, store.dailyPlan * 365, "$")}
+            ${metricRow("Piercings YTD", sub.ep * 60, store.dailyPlan > 4000 ? 800 : 600, "")}
+            ${metricRow("ESA Attach Rate", esaPct, 30, "")}
+            ${metricRow("Conversion Rate", convRate, 38, "")}
           </div>
         </section>`;
     }
@@ -1734,7 +1863,16 @@
       }
       if (action === "react") {
         const post = state.feed.find(p => p.id === Number(el.dataset.id));
-        if (post) post.reactions[el.dataset.key] += 1;
+        const rKey = `${el.dataset.id}_${el.dataset.key}`;
+        if (post) {
+          if (state.myReactions[rKey]) {
+            post.reactions[el.dataset.key] -= 1;
+            delete state.myReactions[rKey];
+          } else {
+            post.reactions[el.dataset.key] += 1;
+            state.myReactions[rKey] = true;
+          }
+        }
         saveState(); render();
       }
       if (action === "open-compose") setState({ composeOpen: true });
