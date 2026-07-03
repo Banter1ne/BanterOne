@@ -1,116 +1,233 @@
 # BanterONE — Session Handoff
 
-State updated on **2026-07-02**. Everything below is what a new session needs
-to pick up cleanly.
+Last updated: **2026-07-03**
 
-## What the app is
-A Streamlit district-ops app for Banter (Signet Jewelers) with 5 tabs:
-Home Feed · My Store · B / Banter Buddy tab · Playbook · District Arena.
-Backend is local CSVs in `data/`. All lime accents (Banter's FY26 rebrand
-color `#D5E547`), Instrument Serif italic for major headers, DM Sans for
-body. Bottom nav is a rounded floating island; center tab is "**B**"
-(Instrument Serif italic, slightly larger) — the Bantagachi tab.
+---
 
-## Runbook
-```bash
-cd /Users/user/Claude/Projects/BanterONE
-pip install -r requirements.txt
-streamlit run app.py
-# Login: brandy.a@banter.com / Banter123
-```
+## Links & Repo
+
+- **Live URL:** `banterone.netlify.app` (auto-deploys from GitHub on every push)
+- **Repo:** `https://github.com/kingsupreme89/banterone.git` (branch: `main`)
+- **Primary file:** `/Users/user/Claude/Projects/BanterONE/redesign/index.html`
+- **Always sync after every edit:** `cp redesign/index.html /Users/user/Documents/BanterONE/index.html`
+- **Netlify deploys from:** `redesign/` folder (see `netlify.toml`)
+- **Preview server config:** `/Users/user/Claude/Projects/BanterONE/.claude/launch.json`
+  - Name: `banterone-redesign`, port 4175, serves `/Users/user/Documents/BanterONE/`
+
+---
+
+## What the App Is
+
+BanterONE is a **retail district operations mobile web app** for Banter (Signet jewelry brand). It's a **single HTML file** — no build system, no framework, no bundler. All UI is rendered via `innerHTML` replacement with a `render()` / `setState()` pattern. Data is stored in **Firebase Firestore** and syncs in real time across all users.
+
+---
 
 ## Architecture
-- `app.py` — entry, tab dispatch via `st.session_state.current_tab`
-- `lib/auth.py` — mock Outlook login (real MS SSO swap = swap `verify_credentials`)
-- `lib/db.py` — local CSV adapter (swap for `st.connection('gsheets')` for persistence)
-- `lib/standards.py` — FY27 commission tiers, monthly targets, store bonus scale
-- `lib/rpg.py` — jewelry catalog, XP, league ranking, commission countdown
-- `lib/buddy.py` — Banter Buddy starters, care meters, evolution rules, local JSON persistence
-- `lib/stylist.py` — legacy DiceBear avatar module; no longer the main B tab direction
-- `lib/ui.py` — global theme, masthead, bottom nav, store badge, avatar helper
-- `tabs/home.py` — store badge + Performance Island + Daily Feed w/ reactions
-- `tabs/my_store.py` — KPI strip, Traffic/Conversion/MTD charts, Weekly Targets
-- `tabs/leaderboard.py` — Today/Monthly/YTD × Store/Individual leaderboards
-- `tabs/playbook.py` — 60+ searchable scripts (Job Aids CCCC, Power Phrases, Core Values, Who to Contact)
-- `tabs/me_tab.py` — Banter Buddy starter picker + care/evolution dashboard + stats + PFP + League
 
-## Data files
-- `data/users.csv` — 22 seeded users (11 real store managers, DM + associates)
-- `data/stores.csv` — all 11 real stores + real mall names + phone numbers
-- `data/daily_submissions.csv` — 11 stores × 10 AM check-ins (real 7/1 data)
-- `data/individual_metrics.csv` — 14 real employee sales rows
-- `data/home_feed.csv` — 25 feed posts (author, content, is_pinned, likes/laughs/fires/party)
-- `data/buddy_profiles.json` — Banter Buddy starter/care state, per-email
-- `data/stylist_profiles.json` — legacy avatar customizations, per-email
+### HTML DOM structure
+```
+<main id="app">
+  <div id="screen-wrap">   ← scrollable content, persistent (never replaced)
+  <div id="nav-wrap">      ← bottom nav bar
+  <div id="overlay-wrap">  ← modals and bottom sheets
+```
 
-## Real business data seeded
-- Fiancée's store: **3922 Cherry Creek** (Brandy A. is the SM). Demo also covers Park Meadows 3905, Aurora 242, Chapel Hills 1241.
-- District Manager: **Tasha Gerold**. Region: **Amanda Horn**.
-- 11 stores across CO + NM, all real store IDs from field roster photo.
-- St. Jude donation tiers seeded from real PDF donation reports (Emily M. leads at $975).
-- FY27 commission ladder: L1 at $50k → L7 at $500k, rates 0.5%–3.75%.
-- Mall Security phone: (302) 270-4500 (from sticky note in roster photo).
+The three wrapper divs are **never removed from the DOM** — only their `innerHTML` is swapped. This preserves scroll position across re-renders.
 
-## Deploy state
-- Local git initialized on branch `main`, two commits.
-- GitHub push status: user was mid-flow. Repo target = `kingsupreme89/BanterONE` (public).
-- Streamlit Cloud: user was on the deploy form. Needs repo pushed first.
+### Core patterns
+- `setState(patch)` → `Object.assign(state, patch)` → `saveState()` → `render()`
+- `saveState()` → writes `{email, tab}` to `localStorage`, debounce-saves user fields to Firestore
+- `render()` → swaps screen HTML, preserves `scrollTop` on same-tab re-renders, rebuilds nav + overlays
+- All click handling via one delegated listener on `#app` using `data-action="..."` attributes
+- `data-stop` on sheet overlays blocks click-through; close buttons bypass it via `data-action` check order
+- Overlays rendered into `overlayWrap` separately from the main screen — no scroll disruption
 
-## Current update (pass #20)
-1. ✅ Pivoted away from inconsistent human DiceBear avatars to original Tamagotchi-style Banter Buddy creatures
-2. ✅ Added `lib/buddy.py` with three starters: Spark Buddy, Gem Buddy, Glow Buddy
-3. ✅ B tab now starts with a three-starter choice, then shows care meters and evolution progress
-4. ✅ Character mode small avatars now use Banter Buddy creature chips instead of DiceBear
-5. ✅ App shell now behaves fullscreen: wide container, hidden Streamlit header/toolbar/sidebar/footer, full-width content area, fixed bottom nav
-6. ✅ Login screen now receives the same global fullscreen shell CSS before the auth gate
-7. ✅ Removed the Scan Banter Jewelry camera section and old Wardrobe card from the B/Profile screen
-8. ✅ Saved generated starter concept art to `assets/buddies/banter-buddy-starter-concepts.png`
-9. ✅ Improved Playbook search with normalized matching and aliases for warranty/ESA, safety/security, Vault/Clienteling, etc.
-10. ⚠️ Google Sheets adapter not started. Plan unchanged: `pip install streamlit-gsheets-connection`, wrap `db.read`/`db.write` to try gsheets first with CSV fallback.
+### Tech stack
+- Vanilla HTML/JS/CSS (no React, no build step)
+- Firebase Firestore compat SDK v10.12.2 via CDN
+- Netlify for hosting
+- PWA (Add to Home Screen) — manifest, apple-touch-icon, `100dvh`, `viewport-fit=cover`
 
-## Previous pass notes (pass #19)
-1. ✅ Cherry Creek font reverted to Instrument Serif italic
-2. ✅ Reactions functional (👍 😂 🔥 🎉) — `home_feed.csv` has `party` column
-3. ✅ Me tab renamed to "**B**" in Instrument Serif italic, only slightly larger than sibling tabs
-4. ↩️ Human avatar direction has been reversed; current direction is original Banter Buddy creatures
-5. ✅ Playbook: `Mall Security` + `FY27 Commission Ladder` titles → lime; search field container has `st-key-playbook_search_wrap` for black-bg CSS
-6. ✅ Me tab customizer was replaced by the starter/care/evolution Banter Buddy flow.
-7. ⚠️ **Google Sheets adapter not started.** Plan: `pip install streamlit-gsheets-connection`, wrap `db.read`/`db.write` to try gsheets first with CSV fallback. User needs to: create a Google Sheet with worksheets named to match CSV files, create a service account JSON via Google Cloud, share the sheet with the service account email, paste JSON into Streamlit Cloud secrets under `[connections.gsheets]`.
+---
 
-## Answers the user asked but I didn't finish responding to
-- **Coworker credentials:** any of the 22 seeded emails + `Banter123`. Cherry Creek team (fiancée's store): `brandy.a@banter.com`, `cc_assoc1@banter.com`, `cc_assoc2@banter.com`, `cc_piercer@banter.com`.
-- **Profile-pic click → Me:** already implemented. Whole store badge is clickable via `.st-key-clickable_badge_container` overlay button → `session_state.current_tab = "me"`.
-- **Playbook search results:** the search function DOES work (tested); user's confusion may be because results render at the top of the tab. PLAYBOOK has 60+ items; try `piercing`, `credit`, `Vault Rewards`, `Mall Security`.
+## Login / Users
 
-## Task list (last known state)
-1. ✅ Phase 0 · Foundation scaffold
-2. ✅ Phase 1 · Home Feed
-3. ✅ Phase 2 · My Store
-4. ✅ Phase 3 · District Arena
-5. ✅ Phase 4 · Playbook
-6. ✅ Phase 5 · Bantagachi RPG
-7. 🔄 Phase 6 · Deploy + real roster swap (in progress — user actively deploying)
-8. ✅ Rebrand + bottom nav + feed stories
-9. ✅ Reset XP + Apple-Music nav + facial piercings
-10. ✅ Serif headers + masthead + click sound + PFP uploads
-11. ✅ Fixed gear + lime radios + gray-mode + lime-inactive tabs
-12. ✅ Bantagachi → Stylist rename + emoji purge + lime headers
-13. ✅ Stylist customizer with live SVG preview
-14. ✅ RPM flow + real Performance Island + Daily Feed rename
-15. ✅ Clickable store badge + black Weekly Targets + Playbook search
-16. ✅ Playbook expansion + feed→arena + font fixes
-17. ✅ DiceBear character + Me center nav + badge→Me
-18. ✅ Cherry Creek font revert + reactions + shrink Me + deploy prep
-19. 🔄 Bantagachi creature + B tab + Playbook fixes + Sheets setup (this pass)
+**Password rule:** first + last initials, uppercase
+- Brandy A. → `BA`
+- Kimberly Toledo → `KT`
+- Tasha Gerold → `TG`
 
-## To resume in a new Claude session
-Paste this prompt to the new session:
+| Email | Name | Role | Store |
+|---|---|---|---|
+| `dm@banter.com` | Tasha Gerold | District Manager | DISTRICT (all stores) |
+| `brandy.a@banter.com` | Brandy A. | Store Manager | 3922 Cherry Creek |
+| `kimberly.t@banter.com` | Kimberly Toledo | Asst Manager | 3922 Cherry Creek |
+| `trinity.b@banter.com` | Trinity B. | Store Manager | 123 |
+| `hannah.f@banter.com` | Hannah F. | Store Manager | 242 |
+| `estrella.m@banter.com` | Estrella M. | Store Manager | 907 |
+| `claudia.g@banter.com` | Claudia G. | Store Manager | 1026 |
+| `steven.v@banter.com` | Steven V. | Store Manager | 1241 |
+| `marlena.r@banter.com` | Marlena R. | Store Manager | 1332 |
+| `evyn.j@banter.com` | Evyn J. | Store Manager | 2595 |
+| `dionne.f@banter.com` | Dionne F. | Store Manager | 3709 |
+| `emily.m@banter.com` | Emily M. | Store Manager | 3739 |
+| `gina.g@banter.com` | Gina G. | Store Manager | 3905 |
+| + associates and piercers per store | | | |
 
-> I'm continuing work on `/Users/user/Claude/Projects/BanterONE` — a Streamlit
-> district-ops app for Banter Jewelers. Read `HANDOFF.md` at the project root
-> for full state. Highest-priority open work:
-> (1) continue from the Banter Buddy starter/evolution system in `lib/buddy.py`
-> and `tabs/me_tab.py`, and
-> (2) wire up Google Sheets as the persistence backend (`lib/db.py`) with a CSV
-> fallback so the user can push code changes without wiping demo data.
-> Then continue whatever the user asks next.
+---
+
+## Firebase / Firestore
+
+Firebase config is **embedded directly in the HTML** (around line 1090).
+**Project:** `banterone-5cb2c`
+
+### Collections
+
+| Collection | Contents | Listener |
+|---|---|---|
+| `feed` | Shared feed posts, `orderBy("timestamp", "desc")`, limit 50 | Real-time after login |
+| `reports` | Disciplinary reports, `orderBy("createdAt", "desc")` | Real-time after login |
+| `users/{email}` | Per-user data document | Loaded once on login; saved on change |
+
+### Feed post document shape
+```js
+{
+  name, initials, authorEmail,
+  timestamp: Firestore.Timestamp,   // server timestamp
+  flair: "shoutout" | "news" | "update",
+  pinned: boolean,
+  text: string,
+  reactions: { like: 0, heart: 0, laugh: 0, fire: 0, party: 0 }
+}
+```
+Post IDs are **Firestore string document IDs** (not numbers).
+
+### Disciplinary report document shape
+```js
+{
+  employeeName, employeeEmail, storeId,
+  type: "coaching" | "written-warning" | "final-warning" | "pip",
+  date: "YYYY-MM-DD",
+  createdAt: Firestore.Timestamp,
+  notes, issuedBy
+}
+```
+
+### Per-user Firestore fields (`users/{email}`)
+`buddy`, `charges`, `chargesEarned`, `rubies`, `myReactions`, `toggles`, `userOverrides`, `districtName`, `unread`, `userPhoto`
+
+### Firestore rules
+Currently **test mode** (open read/write). Must tighten before production.
+
+---
+
+## State Shape (key fields)
+
+```js
+{
+  tab: "home",                      // active screen
+  selectedUserEmail: "...",         // logged-in user's email
+  userPhoto: "",                    // base64 JPEG 120×120
+
+  buddy: { level, xp, xpNext, care, spark, bond },
+  charges: { feed, train, cheer },  // earned on login from daily sales
+  chargesEarned: bool,
+  rubies: "$128",                   // St. Jude counter
+  myReactions: { "postId_key": true },
+  toggles: { notifPush, notifEmail, notifAchievements, soundOn, ... },
+  userOverrides: { "email": { name } },  // profile name edits
+  districtName: "District 4 — Colorado",
+  disciplinaryReports: [],          // populated by Firestore listener
+  feed: [],                         // populated by Firestore listener
+
+  // Ephemeral UI state (not saved to Firestore)
+  settingsOpen, settingsView,
+  composeOpen, composeText, editingPostId,
+  flairOpen, pendingFlair,
+  postMenuId,                       // string Firestore doc ID of open ⋯ menu
+  reportsOpen, newReportOpen,
+  infoOpen, notifOpen,
+  calendarOpen, calendarMonth, calendarYear, calendarSelectedDay,
+  train,                            // null | { step, lessonId, answers }
+  toast,
+}
+```
+
+---
+
+## Features Built
+
+### Home tab
+- KPI cards tap through: District Today + District Rank → Arena tab; Store Today + MTD → Store tab
+- Store card with avatar icon (🏪) and calendar button
+- Daily Feed — real-time Firestore posts with live timestamps (`timeAgo()`)
+- Post ⋯ menu: own posts → Edit / Delete; others' posts → Report
+- Reactions (👍❤️😂🔥🎉) glow neon green when active; counts sync via `FieldValue.increment()`
+
+### Store tab
+- Full KPI grid: sales, transactions, piercings, ESA/warranty, payment options, St. Jude, conversion, MTD pace
+- Weekly targets and MTD progress bars with % attainment
+- Team roster with individual metrics per employee, sorted by sales
+- FY27 annual goals section
+- **Manager Tools → Disciplinary Reports:**
+  - Store Manager sees their store only; DM sees all stores
+  - Types: Coaching, Written Warning, Final Warning, PIP (color-coded badges)
+  - New report form saves to Firestore `reports` collection
+
+### Buddy tab
+- Buddy gem character (`buddy-gem.png`) with level pill overlay
+- Stat bars: Care, Spark, Bond
+- Feed / Train / Cheer charges (earned from daily sales numbers at login)
+- Train flow: pick lesson → read article → quiz → XP + stat reward
+
+### Playbook tab
+- Lesson list with PDF download links
+- Opens lesson article, then advances to quiz
+
+### Arena tab
+- District leaderboard ranked by sales
+- Today / Week / MTD scope toggle
+
+### Settings
+- **Profile:** avatar with 📷 camera badge → pick from photo library → compressed to 120×120 JPEG → saved to Firestore
+- Name edit with Save button; shows "Changes saved" toast
+- Notifications, Appearance, Security, Language toggle sections
+- Workplace Admin: district name, members, roles, integrations, billing, compliance, workflow
+- Sign out clears session and unsubscribes all Firestore listeners
+
+### PWA
+- `manifest.json` + `icon-192.png`
+- `apple-touch-icon`, `theme-color: #0a0a0a`, `apple-mobile-web-app-capable`
+- `user-scalable=no, maximum-scale=1, viewport-fit=cover` — no zoom on iPhone
+- `100dvh` for true fullscreen (avoids Safari URL bar)
+- `html, body { background: var(--bg) }` — no white bars on iPhone safe areas
+
+---
+
+## Files in `redesign/`
+
+| File | Purpose |
+|---|---|
+| `index.html` | Entire app — all HTML, CSS, JS |
+| `manifest.json` | PWA manifest |
+| `icon-192.png` | App icon (192×192) |
+| `buddy-gem.png` | Buddy character image |
+| `buddy-gem2.png` | Alt buddy image |
+
+---
+
+## Known Issues / Pending Work
+
+- **Firestore rules are open** (test mode) — needs real rules before wider rollout
+- **Profile photos only show for own posts** — other users' post avatars still show initials. Fix: store `authorPhoto` field on post document at publish time (`state.userPhoto` at moment of posting)
+- **No push notifications** — would need Firebase Cloud Messaging
+- **App to App Store:** HTML/PWA → wrap with **Capacitor** when ready to ship (few days of work, not a rewrite)
+- **Genies Avatar SDK** is Unity-only; cannot be used in this web app. Could be used if the app is rebuilt native
+
+---
+
+## To Resume in a New Session
+
+Start with:
+
+> I'm continuing work on BanterONE. Read `HANDOFF.md` at `/Users/user/Claude/Projects/BanterONE/HANDOFF.md` for full context, then continue from where we left off.
