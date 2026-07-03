@@ -1667,7 +1667,8 @@
     }
 
     function settingsMenu() {
-      return `<div class="overlay-head"><h2 class="serif" style="font-size:24px;margin:0">Settings</h2><button class="close" data-action="close-settings">×</button></div><div class="settings-group-title">Account Settings</div><div class="card settings-group">${accountSettings.map(settingsRow).join("")}</div><div class="settings-group-title">Workplace Admin</div><div class="card settings-group">${adminSettings.map(settingsRow).join("")}</div>`;
+      const user = activeUser();
+      return `<div class="overlay-head"><h2 class="serif" style="font-size:24px;margin:0">Settings</h2><button class="close" data-action="close-settings">×</button></div><div style="display:flex;align-items:center;gap:10px;padding:12px 0 18px"><div class="avatar" style="width:40px;height:40px">${initials(user.name)}</div><div><div style="font-size:14px;font-weight:700">${user.name}</div><div style="font-size:11px;color:var(--muted)">${user.role} · Store ${user.storeId === "DISTRICT" ? "District" : user.storeId}</div></div></div><div class="settings-group-title">Account Settings</div><div class="card settings-group">${accountSettings.map(settingsRow).join("")}</div><div class="settings-group-title">Workplace Admin</div><div class="card settings-group">${adminSettings.map(settingsRow).join("")}</div><button class="secondary" data-action="logout" style="margin-top:24px;color:#e5484d;border-color:rgba(229,72,77,.25)">Sign out</button>`;
     }
 
     function settingsRow(item) {
@@ -1857,6 +1858,10 @@
       if (action === "close-info" || action === "close-info-bg") setState({ infoOpen: false });
       if (action === "open-settings") setState({ settingsOpen: true, settingsView: "menu" });
       if (action === "close-settings") setState({ settingsOpen: false });
+      if (action === "logout") {
+        localStorage.removeItem("banterone_state");
+        setState({ tab: "login", settingsOpen: false, charges: { feed: 0, train: 0, cheer: 0 }, chargesEarned: false, myReactions: {} });
+      }
       if (action === "settings-back") setState({ settingsView: "menu" });
       if (action === "settings-item") setState({ settingsView: el.dataset.key });
       if (action === "toggle-field") {
