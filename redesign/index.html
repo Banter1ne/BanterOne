@@ -1044,8 +1044,32 @@
     const esc = (value) => String(value).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
     const pct = (value) => `${Math.max(0, Math.min(100, value))}%`;
 
+    const SAVE_KEYS = ["buddy", "charges", "chargesEarned", "feed", "toggles", "selectedUserEmail", "tab", "rubies", "unread"];
+
+    function saveState() {
+      try {
+        const data = {};
+        SAVE_KEYS.forEach(k => data[k] = state[k]);
+        data.customCalEvents = customCalEvents;
+        localStorage.setItem("banterone_state", JSON.stringify(data));
+      } catch (e) {}
+    }
+
+    function restoreState() {
+      try {
+        const raw = localStorage.getItem("banterone_state");
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        SAVE_KEYS.forEach(k => { if (data[k] !== undefined) state[k] = data[k]; });
+        if (data.customCalEvents) customCalEvents = data.customCalEvents;
+      } catch (e) {}
+    }
+
+    restoreState();
+
     function setState(patch) {
       Object.assign(state, patch);
+      saveState();
       render();
     }
 
@@ -1665,12 +1689,12 @@
       if (action === "settings-item") setState({ settingsView: el.dataset.key });
       if (action === "toggle-field") {
         state.toggles[el.dataset.key] = !state.toggles[el.dataset.key];
-        render();
+        saveState(); render();
       }
       if (action === "react") {
         const post = state.feed.find(p => p.id === Number(el.dataset.id));
         if (post) post.reactions[el.dataset.key] += 1;
-        render();
+        saveState(); render();
       }
       if (action === "open-compose") setState({ composeOpen: true });
       if (action === "close-compose") setState({ composeOpen: false, composeText: "" });
@@ -1684,11 +1708,11 @@
       }
       if (action === "feed-buddy" && state.charges.feed > 0) {
         state.charges.feed -= 1; state.buddy.xp += 10; state.buddy.care = Math.min(100, state.buddy.care + 5);
-        showToast("Fed Buddy · +10 XP");
+        saveState(); showToast("Fed Buddy · +10 XP");
       }
       if (action === "cheer-buddy" && state.charges.cheer > 0) {
         state.charges.cheer -= 1; state.buddy.xp += 15; state.buddy.spark = Math.min(100, state.buddy.spark + 6); state.buddy.bond = Math.min(100, state.buddy.bond + 3);
-        showToast("Cheered Buddy · +15 XP");
+        saveState(); showToast("Cheered Buddy · +15 XP");
       }
       if (action === "start-train") setState({ train: { step: "pick", lessonId: null, answers: [] } });
       if (action === "open-lesson") setState({ tab: "playbook", train: { step: "article", lessonId: el.dataset.id, answers: [] } });
