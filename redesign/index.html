@@ -66,6 +66,9 @@
 
     @keyframes glowPulse { 0%, 100% { opacity: .6; } 50% { opacity: 1; } }
     @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes buddyBlink { 0%, 96%, 100% { opacity: 1; } 98% { opacity: 0; } }
+    @keyframes buddyWag { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(3deg); } 75% { transform: rotate(-3deg); } }
+    @keyframes buddyJump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
     .glow {
       position: absolute;
@@ -660,6 +663,8 @@
       settingsOpen: false,
       settingsView: "menu",
       infoOpen: false,
+      evolutionOpen: false,
+      vaultOpen: false,
       notifOpen: false,
       composeOpen: false,
       flairOpen: false,
@@ -678,16 +683,39 @@
       },
       charges: { feed: 0, train: 0, cheer: 0 },
       chargesEarned: false,
-      buddy: { level: 2, xp: 140, xpNext: 250, care: 72, spark: 45, bond: 61 },
+      buddy: { level: 1, xp: 0, xpNext: 100, care: 0, spark: 0, bond: 0 },
+      vaultItems: [
+        { id: "diamond-studs", icon: "💎", name: "14K Gold Diamond Studs", desc: "Classic diamond earrings", unlock: "Earned from 10-day Piercing Streak", unlocked: true, equipped: true },
+        { id: "gold-chain", icon: "⛓️", name: "10K Solid Gold Chain", desc: "A premium thick chain for your Buddy", unlock: "Sell $5,000 in one day", unlocked: false, equipped: false },
+        { id: "st-jude-halo", icon: "👼", name: "St. Jude Guardian Halo", desc: "A glowing halo", unlock: "Highest St. Jude Donation in the district", unlocked: false, equipped: false },
+        { id: "cuban-link", icon: "🔗", name: "Cuban Link Bracelet", desc: "Heavy solid gold bracelet", unlock: "Top 3 in sales for 5 days straight", unlocked: false, equipped: false },
+        { id: "perm-charm", icon: "✨", name: "Permanent Bracelet Charm", desc: "Solid gold welded charm", unlock: "10 piercing units in one day", unlocked: true, equipped: false },
+        { id: "diamond-hands", icon: "💎", name: "Diamond Hands Crown", desc: "Gold crown for the $5K club", unlock: "Sell $5,000 in one day", unlocked: false, equipped: false, hidden: true },
+        { id: "piercing-machine", icon: "🪡", name: "Piercing Champion Ring", desc: "A championship ring for a piercing legend", unlock: "10 piercing units in one day", unlocked: false, equipped: false, hidden: true },
+        { id: "guardian-angel-wings", icon: "👼", name: "Angel Wings", desc: "Glowing wings for the top St. Jude donor", unlock: "Highest St. Jude donation in district", unlocked: false, equipped: false, hidden: true },
+        { id: "on-fire-halo", icon: "🔥", name: "Flame Halo", desc: "For the consistent elite performers", unlock: "Top 3 in sales for 5 days straight", unlocked: false, equipped: false, hidden: true },
+        { id: "district-crown", icon: "👑", name: "District Crown", desc: "Reserved for the #1 store for a full month", unlock: "#1 store for a full month", unlocked: false, equipped: false, hidden: true }
+      ],
       myReactions: {},
       userOverrides: {},
       districtName: "District 4 — Colorado",
       arenaScope: "today",
       individualMetric: "sales",
+      mapView: false,
+      storeScope: "daily",
+      profileOpen: false,
+      profileEmail: null,
+      messagesOpen: false,
+      messageThread: null,
+      composeMessage: "",
+      directMessages: {},
+      streaks: { sales: 3, esa: 2, piercing: 1, attendance: 7, checklist: 5, learning: 2 },
       train: null,
       userPhoto: "",
       postMenuId: null,
       editingPostId: null,
+      goalUploadOpen: false,
+      goalOverrides: {},
       reportsOpen: false,
       newReportOpen: false,
       disciplinaryReports: [
@@ -917,7 +945,7 @@
         title: "Power Phrases",
         meta: "5 min · Communication",
         pdf: "Power Phrases.pdf",
-        body: "Power Phrases are tested language patterns that move conversations forward. Replace 'Can I help you?' with 'What brings you in today?' Replace 'It’s on sale' with 'This is an incredible value right now.' The right words make the difference between a browse and a purchase.",
+        body: "Power Phrases are tested language patterns that move conversations forward. Replace 'Can I help you?' with 'What brings you in today?' Replace 'It's on sale' with 'This is an incredible value right now.' The right words make the difference between a browse and a purchase.",
         quiz: [
           { q: "Instead of 'Can I help you?', say...", options: ["'Just looking?'", "'What brings you in today?'", "'We have a sale'"], correct: 1 },
           { q: "Power Phrases should feel...", options: ["Scripted", "Natural", "Aggressive"], correct: 1 },
@@ -941,7 +969,7 @@
         title: "Core Values",
         meta: "4 min · Culture",
         pdf: "Core Values.pdf",
-        body: "Banter’s core values define how we show up every day: Guest First, Own It, Win Together, and Be Bold. These aren’t posters on a wall — they’re the lens for every decision, from how you greet a guest to how you support your team.",
+        body: "Banter's core values define how we show up every day: Guest First, Own It, Win Together, and Be Bold. These aren't posters on a wall — they're the lens for every decision, from how you greet a guest to how you support your team.",
         quiz: [
           { q: "Core values should guide...", options: ["Only managers", "Every decision", "Only big events"], correct: 1 },
           { q: "'Own It' means...", options: ["Blame others", "Take responsibility", "Ignore problems"], correct: 1 },
@@ -963,17 +991,17 @@
     ];
 
     const stores = [
-      { id: "3922", name: "Cherry Creek", manager: "Brandy A.", city: "Cherry Creek", state: "CO", mall: "Cherry Creek Shopping Center", phone: "(720) 445-6025", dailyPlan: 4600 },
-      { id: "123", name: "Santa Fe", manager: "Trinity B.", city: "Santa Fe", state: "NM", mall: "Santa Fe Place", phone: "(505) 438-2066", dailyPlan: 3200 },
-      { id: "242", name: "Aurora", manager: "Hannah F.", city: "Aurora", state: "CO", mall: "Town Center At Aurora", phone: "(303) 341-2116", dailyPlan: 3800 },
-      { id: "907", name: "Cottonwood", manager: "Estrella M.", city: "Albuquerque", state: "NM", mall: "Cottonwood Mall", phone: "(505) 792-0932", dailyPlan: 3400 },
-      { id: "1026", name: "Citadel", manager: "Claudia G.", city: "Colorado Springs", state: "CO", mall: "Citadel Mall", phone: "(719) 574-6865", dailyPlan: 3600 },
-      { id: "1241", name: "Chapel Hills", manager: "Steven V.", city: "Colorado Springs", state: "CO", mall: "Chapel Hills Mall", phone: "(719) 264-9159", dailyPlan: 3500 },
-      { id: "1332", name: "Coronado North", manager: "Marlena R.", city: "Albuquerque", state: "NM", mall: "Coronado Center", phone: "(505) 880-1301", dailyPlan: 3300 },
-      { id: "2595", name: "Flatiron", manager: "Evyn J.", city: "Broomfield", state: "CO", mall: "Flatiron Crossing", phone: "(303) 404-0528", dailyPlan: 4200 },
-      { id: "3709", name: "Mesa Mall", manager: "Dionne F.", city: "Grand Junction", state: "CO", mall: "Mesa Mall", phone: "(970) 609-4036", dailyPlan: 2800 },
-      { id: "3739", name: "Coronado South", manager: "Emily M.", city: "Albuquerque", state: "NM", mall: "Coronado Center", phone: "(505) 418-5862", dailyPlan: 3300 },
-      { id: "3905", name: "Park Meadows", manager: "Gina G.", city: "Littleton", state: "CO", mall: "Park Meadows", phone: "(234) 206-3202", dailyPlan: 4400 }
+      { id: "3922", name: "Cherry Creek", manager: "Brandy A.", city: "Cherry Creek", state: "CO", mall: "Cherry Creek Shopping Center", phone: "(720) 445-6025", dailyPlan: 1446, monthlyPlan: 44818, piercingMonthly: 149, esaMonthly: 45, lyDailyPlan: 1380, lyEP: 3, mascot: "Crystal Fox", streak: 5 },
+      { id: "123", name: "Santa Fe", manager: "Trinity B.", city: "Santa Fe", state: "NM", mall: "Santa Fe Place", phone: "(505) 438-2066", dailyPlan: 1000, monthlyPlan: 31000, lyDailyPlan: 1050, lyEP: 2, mascot: "Desert Fox", streak: 2 },
+      { id: "242", name: "Aurora", manager: "Hannah F.", city: "Aurora", state: "CO", mall: "Town Center At Aurora", phone: "(303) 341-2116", dailyPlan: 1190, monthlyPlan: 36900, lyDailyPlan: 1100, lyEP: 2, mascot: "Golden Fox", streak: 3 },
+      { id: "907", name: "Cottonwood", manager: "Estrella M.", city: "Albuquerque", state: "NM", mall: "Cottonwood Mall", phone: "(505) 792-0932", dailyPlan: 1070, monthlyPlan: 33170, lyDailyPlan: 980, lyEP: 2, mascot: "River Fox", streak: 1 },
+      { id: "1026", name: "Citadel", manager: "Claudia G.", city: "Colorado Springs", state: "CO", mall: "Citadel Mall", phone: "(719) 574-6865", dailyPlan: 1130, monthlyPlan: 35030, lyDailyPlan: 1200, lyEP: 3, mascot: "Summit Fox", streak: 0 },
+      { id: "1241", name: "Chapel Hills", manager: "Steven V.", city: "Colorado Springs", state: "CO", mall: "Chapel Hills Mall", phone: "(719) 264-9159", dailyPlan: 1100, monthlyPlan: 34100, lyDailyPlan: 1050, lyEP: 2, mascot: "Alpine Fox", streak: 4 },
+      { id: "1332", name: "Coronado North", manager: "Marlena R.", city: "Albuquerque", state: "NM", mall: "Coronado Center", phone: "(505) 880-1301", dailyPlan: 1040, monthlyPlan: 32240, lyDailyPlan: 990, lyEP: 2, mascot: "Mesa Fox", streak: 2 },
+      { id: "2595", name: "Flatiron", manager: "Evyn J.", city: "Broomfield", state: "CO", mall: "Flatiron Crossing", phone: "(303) 404-0528", dailyPlan: 1320, monthlyPlan: 40920, lyDailyPlan: 1280, lyEP: 3, mascot: "Iron Fox", streak: 6 },
+      { id: "3709", name: "Mesa Mall", manager: "Dionne F.", city: "Grand Junction", state: "CO", mall: "Mesa Mall", phone: "(970) 609-4036", dailyPlan: 880, monthlyPlan: 27280, lyDailyPlan: 920, lyEP: 2, mascot: "Canyon Fox", streak: 3 },
+      { id: "3739", name: "Coronado South", manager: "Emily M.", city: "Albuquerque", state: "NM", mall: "Coronado Center", phone: "(505) 418-5862", dailyPlan: 1040, monthlyPlan: 32240, lyDailyPlan: 1010, lyEP: 2, mascot: "Dusk Fox", streak: 1 },
+      { id: "3905", name: "Park Meadows", manager: "Gina G.", city: "Littleton", state: "CO", mall: "Park Meadows", phone: "(234) 206-3202", dailyPlan: 1380, monthlyPlan: 42780, lyDailyPlan: 1310, lyEP: 3, mascot: "Meadow Fox", streak: 7 }
     ];
 
     const dailySubmissions = [
@@ -1017,21 +1045,21 @@
     ];
 
     const individualMetrics = [
-      { email: "cc_assoc1@banter.com", sales: 1250, piercingSales: 120, esaSales: 180, piercings: 3, esaCount: 2 },
-      { email: "cc_assoc2@banter.com", sales: 890, piercingSales: 60, esaSales: 120, piercings: 2, esaCount: 1 },
-      { email: "cc_piercer@banter.com", sales: 0, piercingSales: 480, esaSales: 0, piercings: 12, esaCount: 0 },
-      { email: "brandy.a@banter.com", sales: 1620, piercingSales: 90, esaSales: 240, piercings: 2, esaCount: 3 },
-      { email: "kimberly.t@banter.com", sales: 1420, piercingSales: 75, esaSales: 210, piercings: 2, esaCount: 2 },
-      { email: "pm_assoc1@banter.com", sales: 1050, piercingSales: 90, esaSales: 150, piercings: 2, esaCount: 2 },
-      { email: "pm_assoc2@banter.com", sales: 720, piercingSales: 45, esaSales: 100, piercings: 1, esaCount: 1 },
-      { email: "pm_piercer@banter.com", sales: 0, piercingSales: 360, esaSales: 0, piercings: 9, esaCount: 0 },
-      { email: "gina.g@banter.com", sales: 1480, piercingSales: 60, esaSales: 200, piercings: 1, esaCount: 2 },
-      { email: "aurora_assoc1@banter.com", sales: 980, piercingSales: 60, esaSales: 140, piercings: 2, esaCount: 1 },
-      { email: "aurora_assoc2@banter.com", sales: 650, piercingSales: 30, esaSales: 80, piercings: 1, esaCount: 1 },
-      { email: "hannah.f@banter.com", sales: 1350, piercingSales: 45, esaSales: 180, piercings: 1, esaCount: 2 },
-      { email: "chapel_assoc1@banter.com", sales: 860, piercingSales: 45, esaSales: 120, piercings: 1, esaCount: 1 },
-      { email: "chapel_assoc2@banter.com", sales: 540, piercingSales: 0, esaSales: 60, piercings: 0, esaCount: 1 },
-      { email: "steven.v@banter.com", sales: 1180, piercingSales: 30, esaSales: 150, piercings: 1, esaCount: 1 }
+      { email: "cc_assoc1@banter.com", sales: 1250, piercingSales: 120, esaSales: 180, piercings: 3, esaCount: 2, stjude: 18, hours: 6.5 },
+      { email: "cc_assoc2@banter.com", sales: 890, piercingSales: 60, esaSales: 120, piercings: 2, esaCount: 1, stjude: 10, hours: 5 },
+      { email: "cc_piercer@banter.com", sales: 0, piercingSales: 480, esaSales: 0, piercings: 12, esaCount: 0, stjude: 8, hours: 7 },
+      { email: "brandy.a@banter.com", sales: 1620, piercingSales: 90, esaSales: 240, piercings: 2, esaCount: 3, stjude: 25, hours: 8 },
+      { email: "kimberly.t@banter.com", sales: 1420, piercingSales: 75, esaSales: 210, piercings: 2, esaCount: 2, stjude: 20, hours: 6 },
+      { email: "pm_assoc1@banter.com", sales: 1050, piercingSales: 90, esaSales: 150, piercings: 2, esaCount: 2, stjude: 15, hours: 6 },
+      { email: "pm_assoc2@banter.com", sales: 720, piercingSales: 45, esaSales: 100, piercings: 1, esaCount: 1, stjude: 8, hours: 4 },
+      { email: "pm_piercer@banter.com", sales: 0, piercingSales: 360, esaSales: 0, piercings: 9, esaCount: 0, stjude: 12, hours: 6 },
+      { email: "gina.g@banter.com", sales: 1480, piercingSales: 60, esaSales: 200, piercings: 1, esaCount: 2, stjude: 22, hours: 8 },
+      { email: "aurora_assoc1@banter.com", sales: 980, piercingSales: 60, esaSales: 140, piercings: 2, esaCount: 1, stjude: 14, hours: 6 },
+      { email: "aurora_assoc2@banter.com", sales: 650, piercingSales: 30, esaSales: 80, piercings: 1, esaCount: 1, stjude: 8, hours: 4 },
+      { email: "hannah.f@banter.com", sales: 1350, piercingSales: 45, esaSales: 180, piercings: 1, esaCount: 2, stjude: 18, hours: 8 },
+      { email: "chapel_assoc1@banter.com", sales: 860, piercingSales: 45, esaSales: 120, piercings: 1, esaCount: 1, stjude: 12, hours: 6 },
+      { email: "chapel_assoc2@banter.com", sales: 540, piercingSales: 0, esaSales: 60, piercings: 0, esaCount: 1, stjude: 6, hours: 5 },
+      { email: "steven.v@banter.com", sales: 1180, piercingSales: 30, esaSales: 150, piercings: 1, esaCount: 1, stjude: 16, hours: 8 }
     ];
 
     const playbookDocs = [
@@ -1089,7 +1117,7 @@
     const db = firebase.firestore();
 
     // Per-user fields stored in Firestore users/{email}
-    const USER_FIELDS = ["buddy", "charges", "chargesEarned", "rubies", "myReactions", "toggles", "userOverrides", "districtName", "unread", "userPhoto"];
+    const USER_FIELDS = ["buddy", "charges", "chargesEarned", "rubies", "myReactions", "toggles", "userOverrides", "districtName", "unread", "userPhoto", "streaks", "directMessages"];
 
     let saveUserTimer = null;
     function saveUserData() {
@@ -1182,6 +1210,33 @@
       });
     }
 
+    const BUDDY_NOTIFS = [
+      { title: "Your Buddy misses you 🦊", body: "It's been a while — pop in and give them some love before the shift ends." },
+      { title: "Cherry Creek just passed Park Meadows! 🏆", body: "Your store moved to #1 in the district. Keep the momentum going!" },
+      { title: "Halfway to stretch goal 💰", body: "You're 65% to plan and climbing. One more big ticket could flip the board green." },
+      { title: "ESA reminder 🛡", body: "3 transactions in and no ESA yet — next customer, lead with the 'lost or broken' story." },
+      { title: "Your Buddy leveled up! ✨", body: "Crystal Fox just hit Level 5. Check out the new accessories you've unlocked." },
+      { title: "St. Jude opportunity ❤️", body: "You're $4 away from today's St. Jude goal. Every dollar counts for the kids." },
+      { title: "Piercing station alert 🪡", body: "No piercings yet today — is the station visible and stocked? A quick check can add 2 walk-ups." },
+      { title: "Your store is on a 5-day streak 🔥", body: "Cherry Creek has hit plan 5 days running. Don't break the chain!" },
+      { title: "District shoutout 📣", body: "Brandy just posted a shoutout in the feed. Tap to react and show some love." },
+      { title: "New achievement unlocked 🎉", body: "You're close to Diamond Hands — one $5k day and the crown is yours." }
+    ];
+
+    let notifIndex = 0;
+    let notifTimer = null;
+
+    function scheduleBuddyNotifications() {
+      if (notifTimer) clearInterval(notifTimer);
+      if (!("Notification" in window) || Notification.permission !== "granted") return;
+      notifTimer = setInterval(() => {
+        if (!state.toggles.notifPush) return;
+        const n = BUDDY_NOTIFS[notifIndex % BUDDY_NOTIFS.length];
+        notifIndex++;
+        new Notification(n.title, { body: n.body, icon: "icon-192.png", badge: "icon-192.png" });
+      }, 45 * 1000);
+    }
+
     function avatarEl(label, photoUrl, size = 36) {
       if (photoUrl) return `<div class="avatar" style="width:${size}px;height:${size}px;padding:0;overflow:hidden"><img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>`;
       return `<div class="avatar" style="width:${size}px;height:${size}px">${label}</div>`;
@@ -1197,6 +1252,7 @@
     }
 
     restoreState();
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") scheduleBuddyNotifications();
 
     // Patch authorEmail into feed posts that predate that field
     (function migrateAuthorEmails() {
@@ -1272,12 +1328,14 @@
 
     function topCluster() {
       if (state.tab === "login") return "";
+      const dmCount = Object.values(state.directMessages || {}).reduce((s, msgs) => s + msgs.filter(m => m.from !== activeUser().email && !m.read).length, 0);
       return `
         <div class="top-cluster">
           <button class="points-badge" data-action="noop" aria-label="St Jude points">
             <span class="points-dot">$</span>
             <span><span class="points-value">${state.rubies}</span><span class="points-label">ST JUDE</span></span>
           </button>
+          <button class="icon-button" data-action="open-messages" aria-label="Messages" style="position:relative">💬${dmCount ? `<span class="badge">${dmCount}</span>` : ""}</button>
           <button class="icon-button" data-action="open-settings" aria-label="Settings">⚙️</button>
           <button class="icon-button" data-action="open-notifications" aria-label="Notifications" style="position:relative">🔔${state.unread ? `<span class="badge">${state.unread}</span>` : ""}</button>
         </div>`;
@@ -1355,6 +1413,24 @@
             ${kpi("MTD", money(submission.bold * 2), `vs ${money(store.dailyPlan * 2)} pace`, false, "go-store")}
             ${kpi("District Rank", rankText, store.id === "DISTRICT" ? "all stores" : "of 11 stores", true, "go-arena")}
           </div>
+          ${(activeUser().storeId === "DISTRICT" || activeUser().role === "Store Manager" || activeUser().role === "Assistant Manager") ? (() => {
+            const sub = submissionForStore(activeStore().id);
+            const store = activeStore();
+            const effPlan = Math.max(store.dailyPlan || 0, store.lyDailyPlan || 0);
+            const pct = effPlan ? Math.round((sub.bold / effPlan) * 100) : 0;
+            const urgency = pct < 60 ? "#e5484d" : pct < 85 ? "#f5a524" : "#c6ff3a";
+            const msg = pct < 60 ? "Sales alert — needs attention now" : pct < 85 ? "Below pace — push for upsells" : "On track — look for stretch opportunities";
+            return `<div class="card" style="padding:12px 14px;border-left:3px solid ${urgency};background:rgba(255,255,255,.03);cursor:pointer;margin-top:6px" data-action="tab" data-tab="insights">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:18px">🧠</span>
+                <div style="flex:1">
+                  <div style="font-size:12px;font-weight:700;color:var(--text)">Manager Insights</div>
+                  <div style="font-size:11px;color:var(--soft);margin-top:2px">${msg}</div>
+                </div>
+                <span style="font-size:18px;color:var(--muted)">›</span>
+              </div>
+            </div>`;
+          })() : ""}
           <div class="neon-spacer left"></div>
           <div class="section-row">
             <div class="section-title">Daily Feed</div>
@@ -1401,19 +1477,46 @@
       const user = activeUser();
       const store = activeStore();
       const sub = submissionForStore(store.id);
-      const planPct = Math.round((sub.bold / store.dailyPlan) * 100);
-      const weeklyPlan = store.dailyPlan * 7;
-      const mtdSales = sub.bold * 2;
-      const mtdPlan = store.dailyPlan * 30;
+      const today = new Date();
+      const dayOfMonth = today.getDate();
+      const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+      const monthsElapsed = today.getMonth() + (dayOfMonth / daysInMonth);
+
+      // LY logic: use higher of plan vs last year
+      const effectiveDailyPlan = Math.max(store.dailyPlan, store.lyDailyPlan || 0);
+      const usingLY = store.lyDailyPlan && store.lyDailyPlan > store.dailyPlan;
+      // EP goal must exceed last year's daily average
+      const lyEPGoal = store.lyEP || 0;
+      const epGoal = Math.max((store.dailyPlan > 4000 ? 5 : 4), lyEPGoal + 1);
+
+      const planPct = Math.round((sub.bold / effectiveDailyPlan) * 100);
+      const stretchGoal = Math.round(effectiveDailyPlan * 1.30);
+      const weeklyPlan = effectiveDailyPlan * 7;
+      const mtdSales = sub.bold * dayOfMonth;
+      const mtdPlan = effectiveDailyPlan * daysInMonth;
       const mtdPct = Math.round((mtdSales / mtdPlan) * 100);
+      const ytdSales = sub.bold * dayOfMonth * (today.getMonth() + 1);
+      const ytdPlan = effectiveDailyPlan * 365;
+      const ytdPct = Math.round((ytdSales / ytdPlan) * 100);
       const convRate = sub.trans ? Math.round((sub.trans / (sub.trans + 8)) * 100) : 0;
       const esaPct = sub.trans ? Math.round((sub.esa / sub.trans) * 100) : 0;
-      const epPct = sub.trans ? Math.round((sub.ep / sub.trans) * 100) : 0;
+      const epPct = Math.round((sub.ep / epGoal) * 100);
+      const poPct = sub.trans ? Math.round((sub.po / sub.trans) * 100) : 0;
+      const stjMtd = sub.stj * dayOfMonth;
+      const stjGoal = 10;
+      const stjMtdGoal = stjGoal * daysInMonth;
 
       const team = users.filter(u => u.storeId === store.id);
+      const totalTeamHours = team.reduce((s, u) => {
+        const m = individualMetrics.find(im => im.email === u.email);
+        return s + (m ? (m.hours || 6) : 6);
+      }, 0);
       const teamMetrics = team.map(u => {
-        const m = individualMetrics.find(im => im.email === u.email) || { sales: 0, piercingSales: 0, esaSales: 0, piercings: 0, esaCount: 0 };
-        return { ...u, ...m };
+        const m = individualMetrics.find(im => im.email === u.email) || { sales: 0, piercingSales: 0, esaSales: 0, piercings: 0, esaCount: 0, hours: 6, stjude: 0 };
+        const indivHours = m.hours || 6;
+        const indivGoal = totalTeamHours > 0 ? Math.round(store.dailyPlan * (indivHours / totalTeamHours)) : 0;
+        const indivGoalPct = indivGoal ? Math.round((m.sales / indivGoal) * 100) : 0;
+        return { ...u, ...m, indivGoal, indivGoalPct };
       }).sort((a, b) => b.sales - a.sales);
 
       const storeBoard = buildStoreBoard("today");
@@ -1440,27 +1543,61 @@
           </div>
 
           <div class="card store-card">
-            <div class="eyebrow">${store.id === "DISTRICT" ? "District" : `Store ${store.id}`}</div>
-            <div class="serif store-title">${store.name}</div>
-            <div class="caption">${store.mall}${store.city ? ` · ${store.city}${store.state ? `, ${store.state}` : ""}` : ""}</div>
-            <div class="caption">${store.id === "DISTRICT" ? `Signed in as ${user.name}` : `Manager: ${store.manager} · ${store.phone}`}</div>
-            <div class="store-card-cal"><button class="cal-icon-btn" data-action="open-calendar" aria-label="Calendar">📅</button></div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div>
+                <div class="eyebrow">${store.id === "DISTRICT" ? "District" : `Store ${store.id}`}${usingLY ? ' <span style="color:#f5a524;font-size:9px;font-weight:700;padding:1px 5px;background:rgba(245,165,36,.12);border-radius:4px;margin-left:4px">USING LY PLAN</span>' : ""}</div>
+                <div class="serif store-title">${store.name}</div>
+                <div class="caption">${store.mall}${store.city ? ` · ${store.city}${store.state ? `, ${store.state}` : ""}` : ""}</div>
+                <div class="caption">${store.id === "DISTRICT" ? `Signed in as ${user.name}` : `Manager: ${store.manager} · ${store.phone}`}</div>
+                ${store.mascot ? `<div style="margin-top:6px;display:flex;align-items:center;gap:8px">
+                  <span style="font-size:10px;color:var(--muted)">🦊 ${store.mascot}</span>
+                  ${store.streak > 0 ? `<span style="font-size:10px;color:#f5a524;font-weight:700">🔥 ${store.streak}-day streak</span>` : ""}
+                  <span style="font-size:10px;color:var(--lime);font-weight:700">District ${rankText}</span>
+                </div>` : ""}
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <button class="cal-icon-btn" data-action="open-calendar" aria-label="Calendar">📅</button>
+                ${(user.role === "Store Manager" || user.role === "District Manager" || user.role === "Assistant Manager") ? `<button class="cal-icon-btn" data-action="open-goal-upload" aria-label="Upload goal sheet" title="Upload goal sheet">📋</button>` : ""}
+              </div>
+            </div>
           </div>
 
           <div class="neon-spacer compact"></div>
-          <div class="section-row"><div class="section-title">Today’s Performance</div><div class="post-time">District Rank ${rankText}</div></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
+            <button class="nav-btn ${state.storeScope === 'daily' ? 'active' : ''}" data-action="store-scope" data-scope="daily" style="height:32px;border:1px solid rgba(255,255,255,.08)">Daily</button>
+            <button class="nav-btn ${state.storeScope === 'mtd' ? 'active' : ''}" data-action="store-scope" data-scope="mtd" style="height:32px;border:1px solid rgba(255,255,255,.08)">MTD</button>
+            <button class="nav-btn ${state.storeScope === 'ytd' ? 'active' : ''}" data-action="store-scope" data-scope="ytd" style="height:32px;border:1px solid rgba(255,255,255,.08)">YTD</button>
+          </div>
+          <div class="section-row"><div class="section-title">${state.storeScope === 'daily' ? "Today's Performance" : state.storeScope === 'mtd' ? "Month-to-Date" : "Year-to-Date"}</div><div class="post-time">District Rank ${rankText}</div></div>
+          ${state.storeScope === 'daily' ? `
           <div class="kpis">
-            ${kpi("Sales", money(sub.bold), `${planPct}% of ${money(store.dailyPlan)}`, planPct >= 100)}
-            ${kpi("Transactions", sub.trans, `${money(sub.avt)} avg ticket`)}
-            ${kpi("Piercings", sub.ep, `${epPct}% attach rate`, sub.ep >= 3)}
-            ${kpi("ESA / Warranty", sub.esa, `${esaPct}% attach rate`, sub.esa >= 2)}
+            ${kpi("Sales Today", money(sub.bold), `${planPct}% · Goal ${money(effectiveDailyPlan)}${usingLY ? " ↑LY" : ""}`, planPct >= 100)}
+            ${kpi("Stretch Goal", money(stretchGoal), `Need +${money(Math.max(0, stretchGoal - sub.bold))} more`, sub.bold >= stretchGoal)}
+            ${kpi("Piercings", sub.ep, `Goal ${epGoal} (beat LY ${lyEPGoal}) · ${epPct}%`, epPct >= 100)}
+            ${kpi("ESA Rate", `${esaPct}%`, `Goal ≥ 50% attach`, esaPct >= 50)}
           </div>
           <div class="kpis" style="margin-top:6px">
-            ${kpi("Payment Options", sub.po, `${sub.trans ? Math.round(sub.po/sub.trans*100) : 0}% of trans`)}
-            ${kpi("St. Jude", money(sub.stj), "Today’s round-ups")}
+            ${kpi("Avg Ticket", money(sub.avt), "Goal $155+", sub.avt >= 155)}
+            ${kpi("Payment Options", `${poPct}%`, "Goal ≥ 18% of trans", poPct >= 18)}
+            ${kpi("St. Jude Today", money(sub.stj), `Goal $${stjGoal}/day`, sub.stj >= stjGoal)}
             ${kpi("Conversion", `${convRate}%`, `${sub.trans + 8} traffic est.`, convRate >= 35)}
-            ${kpi("MTD Pace", money(mtdSales), `${mtdPct}% of ${money(mtdPlan)}`, mtdPct >= 90)}
           </div>
+          <div style="margin:8px 0;padding:8px 12px;background:rgba(198,255,58,.06);border-radius:10px;border:1px solid rgba(198,255,58,.12);font-size:11px;color:var(--muted)">
+            <strong style="color:var(--lime)">Company Expectations: </strong>
+            Sales ${planPct >= 100 ? '✅' : '⚠️'} ${planPct}% · ESA ${esaPct >= 50 ? '✅' : '⚠️'} ${esaPct}% · PO ${poPct >= 18 ? '✅' : '⚠️'} ${poPct}% · Avg Ticket ${sub.avt >= 155 ? '✅' : '⚠️'} ${money(sub.avt)}
+          </div>` : state.storeScope === 'mtd' ? `
+          <div class="kpis">
+            ${kpi("MTD Sales", money(mtdSales), `${mtdPct}% · Goal ${money(mtdPlan)}`, mtdPct >= 100)}
+            ${kpi("MTD Stretch", money(Math.round(mtdPlan * 1.30)), `Beat plan × 1.30`, mtdSales >= mtdPlan * 1.30)}
+            ${kpi("MTD Piercings", sub.ep * dayOfMonth, `Day ${dayOfMonth} of ${daysInMonth}`)}
+            ${kpi("MTD St. Jude", money(stjMtd), `Goal ${money(stjMtdGoal)} · ${Math.round(stjMtd/stjMtdGoal*100)}%`, stjMtd >= stjMtdGoal)}
+          </div>` : `
+          <div class="kpis">
+            ${kpi("YTD Sales", money(ytdSales), `${ytdPct}% · Goal ${money(ytdPlan)}`, ytdPct >= 100)}
+            ${kpi("YTD Stretch", money(Math.round(ytdPlan * 1.30)), `Beat plan × 1.30`, ytdSales >= ytdPlan * 1.30)}
+            ${kpi("YTD Piercings", sub.ep * dayOfMonth * (today.getMonth() + 1), `Goal ${store.dailyPlan > 4000 ? 1825 : 1460}`)}
+            ${kpi("YTD St. Jude", money(stjMtd * (today.getMonth() + 1)), `${today.getMonth() + 1} months accumulated`)}
+          </div>`}
 
           <div class="neon-spacer left"></div>
           <div class="section-row"><div class="section-title">Daily Metrics</div></div>
@@ -1509,36 +1646,43 @@
 
           ${teamMetrics.length > 0 ? `
           <div class="neon-spacer"></div>
-          <div class="section-row"><div class="section-title">Team Roster</div><div class="post-time">${teamMetrics.length} members</div></div>
-          ${teamMetrics.map(tm => `
-            <div class="card" style="padding:12px;margin-bottom:8px">
+          <div class="section-row"><div class="section-title">Team Roster</div><div class="post-time">${teamMetrics.length} members · ${totalTeamHours}h total</div></div>
+          ${teamMetrics.map(tm => {
+            const goalClr = tm.indivGoalPct >= 100 ? 'var(--lime)' : tm.indivGoalPct >= 80 ? 'var(--text)' : 'var(--red)';
+            const displayRole = tm.role === 'Body Piercer' ? 'Piercing Specialist' : tm.role;
+            return `
+            <div class="card" style="padding:12px;margin-bottom:8px" data-action="open-profile" data-email="${tm.email}" style="cursor:pointer">
               <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
                 <div class="avatar" style="width:34px;height:34px;font-size:11px">${(tm.name || "?").split(" ").map(p => p[0]).join("").slice(0,2)}</div>
                 <div style="flex:1">
                   <div style="font-size:13px;font-weight:700">${tm.name}</div>
-                  <div style="font-size:10px;color:var(--muted)">${tm.role}</div>
+                  <div style="font-size:10px;color:var(--muted)">${displayRole} · ${tm.hours || 6}h today</div>
                 </div>
                 <div style="text-align:right">
-                  <div style="font-size:14px;font-weight:700;color:var(--lime)">${money(tm.sales)}</div>
-                  <div style="font-size:10px;color:var(--muted)">sales</div>
+                  <div style="font-size:14px;font-weight:700;color:${goalClr}">${money(tm.sales)}</div>
+                  <div style="font-size:10px;color:var(--muted)">Goal ${money(tm.indivGoal)} · ${tm.indivGoalPct}%</div>
                 </div>
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-                <div style="text-align:center;padding:6px;background:var(--bg);border-radius:8px">
-                  <div style="font-size:13px;font-weight:700">${tm.piercings}</div>
-                  <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Piercings</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+                <div style="text-align:center;padding:5px 4px;background:var(--bg);border-radius:8px">
+                  <div style="font-size:12px;font-weight:700">${tm.piercings}</div>
+                  <div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Pierce</div>
                 </div>
-                <div style="text-align:center;padding:6px;background:var(--bg);border-radius:8px">
-                  <div style="font-size:13px;font-weight:700">${tm.esaCount}</div>
-                  <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">ESA</div>
+                <div style="text-align:center;padding:5px 4px;background:var(--bg);border-radius:8px">
+                  <div style="font-size:12px;font-weight:700">${tm.esaCount}</div>
+                  <div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">ESA</div>
                 </div>
-                <div style="text-align:center;padding:6px;background:var(--bg);border-radius:8px">
-                  <div style="font-size:13px;font-weight:700">${money(tm.esaSales)}</div>
-                  <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Warranty $</div>
+                <div style="text-align:center;padding:5px 4px;background:var(--bg);border-radius:8px">
+                  <div style="font-size:12px;font-weight:700">${money(tm.stjude || 0)}</div>
+                  <div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">St. Jude</div>
+                </div>
+                <div style="text-align:center;padding:5px 4px;background:var(--bg);border-radius:8px">
+                  <div style="font-size:12px;font-weight:700">${money(tm.avt || sub.avt)}</div>
+                  <div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Avg Tkt</div>
                 </div>
               </div>
             </div>
-          `).join("")}` : ""}
+          `}).join("")}` : ""}
 
           <div class="neon-spacer left"></div>
           <div class="section-row"><div class="section-title">Store Goals</div></div>
@@ -1564,47 +1708,131 @@
         </section>`;
     }
 
+    function questRow(label, progress) {
+      return `<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.06)">
+        <div style="font-size:12px; color:var(--text); display:flex; align-items:center; gap:8px"><span style="color:var(--lime)">⭐</span> ${label}</div>
+        <div style="font-size:11px; font-weight:700; color:var(--soft)">${progress}</div>
+      </div>`;
+    }
+
     function buddyScreen() {
       const b = state.buddy;
+      const store = activeStore();
+      const sub = submissionForStore(store.id);
+      const projectedCommission = Math.round(sub.bold * 0.02 + sub.esa * 10);
+      const storeBoard = buildStoreBoard("today");
+      const rankIndex = store.id === "DISTRICT" ? 0 : storeBoard.findIndex(row => row.id === store.id);
+      const rankText = store.id === "DISTRICT" ? "#1" : `#${rankIndex + 1}`;
+      const toPass = rankIndex > 0 ? storeBoard[rankIndex - 1].name : "None";
+
       return `
         <section class="screen">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
             <div><div class="serif" style="font-size:22px">My Banter Buddy</div><div style="font-size:11px;color:var(--muted)">Level ${b.level} · ${b.xp}/${b.xpNext} XP</div></div>
-            ${topCluster()}
-          </div>
-          <div class="charges">
-            ${charge("Feed", state.charges.feed)}
-            ${charge("Train", state.charges.train)}
-            ${charge("Cheer", state.charges.cheer)}
-          </div>
-          <button class="helper-link" data-action="open-info">How do I earn charges? <span>Learn more →</span></button>
-          <div class="neon-spacer compact"></div>
-          <div class="card buddy-card">
-            <div class="buddy-art"><img src="buddy-gem.png" alt="Banter Buddy"><span class="level-pill">LV.${b.level}</span></div>
-            <div class="buddy-inner">
-              <div class="kpi-label" style="margin-bottom:8px">Care</div>
-              ${stat("Care", b.care)}
-              ${stat("Spark", b.spark, true)}
-              ${stat("Bond", b.bond)}
-              <div class="buddy-actions">
-                <button data-action="feed-buddy" ${state.charges.feed <= 0 ? "disabled" : ""}>Feed${state.charges.feed <= 0 ? "" : ` (${state.charges.feed})`}</button>
-                <button data-action="start-train" ${state.charges.train <= 0 ? "disabled" : ""}>Train${state.charges.train <= 0 ? "" : ` (${state.charges.train})`}</button>
-                <button data-action="cheer-buddy" ${state.charges.cheer <= 0 ? "disabled" : ""}>Cheer${state.charges.cheer <= 0 ? "" : ` (${state.charges.cheer})`}</button>
-              </div>
-              ${state.charges.feed <= 0 || state.charges.train <= 0 || state.charges.cheer <= 0 ? `<div style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5">${state.charges.feed <= 0 ? "📦 Sell $500+ to earn Feed charges<br>" : ""}${state.charges.train <= 0 ? "💎 Complete a piercing to earn Train charges<br>" : ""}${state.charges.cheer <= 0 ? "🛡️ Attach an ESA warranty to earn Cheer charges" : ""}</div>` : ""}
+            <div style="display:flex; gap:8px">
+              <button class="icon-button" data-action="open-vault" style="width:auto; padding:0 12px; font-size:12px; font-weight:700">🎒 Vault</button>
+              ${topCluster()}
             </div>
           </div>
-          <button class="card evolution" data-action="open-info" style="width:100%;text-align:left;color:var(--text)">
-            <div class="section-row" style="margin-bottom:8px"><span class="kpi-label">Evolution</span><span class="link-action">How it works →</span></div>
-            <div class="serif" style="font-size:24px;color:var(--lime);font-style:italic">Styled</div>
-            <div class="track" style="margin:8px 0"><div class="fill" style="width:${pct((b.xp / b.xpNext) * 100)}"></div></div>
-            <div class="post-time">Needs Level 3 and 250 XP</div>
+          
+          <div class="card buddy-card" style="margin-bottom:14px; padding-bottom: 12px">
+            <div class="buddy-art" style="height: 260px;"><img src="buddy-gem.png" alt="Banter Buddy" style="height: 240px; animation: buddyJump 4s ease-in-out infinite, buddyWag 3s ease-in-out infinite, buddyBlink 5s infinite;"><span class="level-pill">LV.${b.level} · Baby Crystal Fox</span></div>
+            <div class="buddy-inner">
+              <div style="display:flex; justify-content:space-between; margin-bottom:12px">
+                <div style="text-align:center; flex:1">
+                  <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em">Proj. Commission</div>
+                  <div style="font-size:18px; font-weight:700; color:var(--lime); margin-top:4px">$${projectedCommission}</div>
+                </div>
+                <div style="width:1px; background:rgba(255,255,255,.1); margin:0 12px"></div>
+                <div style="text-align:center; flex:1">
+                  <div style="font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:.06em">XP Progress</div>
+                  <div style="font-size:18px; font-weight:700; margin-top:4px">${b.xp}<span style="font-size:12px;color:var(--muted)">/${b.xpNext}</span></div>
+                </div>
+              </div>
+              <div class="track" style="height:6px; margin-bottom:14px"><div class="fill" style="width:${pct((b.xp / b.xpNext) * 100)}"></div></div>
+
+              <div class="charges">
+                ${chargeCard("🍎", "Feed", state.charges.feed, "Hit $500+ in sales")}
+                ${chargeCard("⚔️", "Train", state.charges.train, "Ear piercing sold")}
+                ${chargeCard("❤️", "Cheer", state.charges.cheer, "ESA attach earned")}
+              </div>
+              <div class="buddy-actions" style="margin-top:8px">
+                <button data-action="feed-buddy" ${state.charges.feed <= 0 ? "disabled" : ""} style="background:${state.charges.feed > 0 ? "var(--lime)" : ""}; color:${state.charges.feed > 0 ? "var(--bg)" : ""}">🍎 Feed</button>
+                <button data-action="start-train" ${state.charges.train <= 0 ? "disabled" : ""} style="background:${state.charges.train > 0 ? "var(--lime)" : ""}; color:${state.charges.train > 0 ? "var(--bg)" : ""}">⚔️ Train</button>
+                <button data-action="cheer-buddy" ${state.charges.cheer <= 0 ? "disabled" : ""} style="background:${state.charges.cheer > 0 ? "var(--lime)" : ""}; color:${state.charges.cheer > 0 ? "var(--bg)" : ""}">❤️ Cheer</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="padding:14px; margin-bottom:14px; background:linear-gradient(to right, rgba(198,255,58,.08), transparent); border-left: 3px solid var(--lime)">
+            <div style="font-size:10px; font-weight:800; letter-spacing:.1em; color:var(--lime); text-transform:uppercase; margin-bottom:6px">🧠 Today's Coach</div>
+            <div style="font-size:13px; margin-bottom:6px"><strong>Great momentum!</strong> You're ranked ${rankText} in the district.</div>
+            ${rankIndex > 0 ? `<div style="font-size:12px; color:var(--soft); margin-bottom:6px">You're close to passing ${toPass}.</div>` : ''}
+            <div style="font-size:12px; color:var(--soft);">Sell 1 more ESA to reach the top attach rate.</div>
+            <div style="margin-top:8px; font-size:11px; padding:6px; background:var(--bg); border-radius:6px; display:inline-block; border:1px solid rgba(198,255,58,.2); color:var(--lime)">
+              🐾 Reward: Complete this challenge to earn 250 XP
+            </div>
+          </div>
+
+          <div class="section-row" style="margin-top:16px"><div class="section-title">Today's Quests</div></div>
+          <div class="card" style="padding:12px; margin-bottom:14px">
+            ${questRow("Sell 2 gold piercings", "0/2")}
+            ${questRow("Donate $10 St Jude", "$4/$10")}
+            ${questRow("ESA Attach Rate >50%", "30%")}
+          </div>
+
+          <div class="section-row" style="margin-top:16px"><div class="section-title">Product Spotlight</div></div>
+          <div class="card" style="padding:14px; margin-bottom:14px; display:flex; gap:12px; align-items:center">
+            <div style="width:40px; height:40px; border-radius:8px; background:rgba(255,255,255,.1); display:grid; place-items:center; font-size:20px">✨</div>
+            <div>
+              <div style="font-size:13px; font-weight:700">Permanent Bracelets</div>
+              <div style="font-size:11px; color:var(--muted); margin-top:2px">Focus on layering and custom charms this week.</div>
+            </div>
+          </div>
+
+          <div class="section-row" style="margin-top:16px"><div class="section-title">Streaks</div></div>
+          <div class="card" style="padding:12px;margin-bottom:14px">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+              ${streakPill("🔥", "Sales", state.streaks.sales)}
+              ${streakPill("💎", "ESA", state.streaks.esa)}
+              ${streakPill("🪡", "Piercing", state.streaks.piercing)}
+              ${streakPill("✅", "Checklist", state.streaks.checklist)}
+              ${streakPill("📚", "Learning", state.streaks.learning)}
+              ${streakPill("🗓", "Attendance", state.streaks.attendance)}
+            </div>
+            <div style="font-size:10px;color:var(--muted);margin-top:8px;text-align:center">Breaking a streak resets it to 0. Keep showing up!</div>
+          </div>
+
+          <button class="card evolution" data-action="open-evolution" style="width:100%;text-align:left;color:var(--text);margin-bottom:14px;border-color:rgba(198,255,58,.2)">
+            <div class="section-row" style="margin-bottom:8px"><span class="kpi-label">Evolution Path</span><span class="link-action">Full path →</span></div>
+            <div class="serif" style="font-size:22px;color:var(--lime);font-style:italic">Next: Adult Fox (L10)</div>
+            <div class="track" style="margin:8px 0"><div class="fill" style="width:${Math.min(100, b.level * 10)}%"></div></div>
+            <div class="post-time">Current: Baby Crystal Fox · Level ${b.level} · ${b.xp}/${b.xpNext} XP</div>
           </button>
         </section>`;
     }
 
     function charge(label, count) {
       return `<div class="card charge"><span>${label.toUpperCase()}</span><strong>${count}</strong></div>`;
+    }
+
+    function chargeCard(icon, label, count, earnedFrom) {
+      const hasCharge = count > 0;
+      return `<div class="card charge" style="flex-direction:column;gap:2px;padding:10px 6px;align-items:center;border-color:${hasCharge ? 'rgba(198,255,58,.3)' : 'rgba(255,255,255,.06)'};background:${hasCharge ? 'rgba(198,255,58,.06)' : 'var(--disabled)'}">
+        <span style="font-size:18px">${icon}</span>
+        <strong style="font-size:18px;color:${hasCharge ? 'var(--lime)' : 'var(--off)'}">${count}</strong>
+        <span style="font-size:9px;color:var(--eyebrow);text-transform:uppercase;letter-spacing:.06em">${label}</span>
+        <span style="font-size:8px;color:var(--muted);text-align:center;line-height:1.3">${earnedFrom}</span>
+      </div>`;
+    }
+
+    function streakPill(icon, label, days) {
+      const hot = days >= 5;
+      return `<div style="text-align:center;padding:8px 4px;background:${hot ? 'rgba(198,255,58,.08)' : 'var(--bg)'};border-radius:10px;border:1px solid ${hot ? 'rgba(198,255,58,.2)' : 'rgba(255,255,255,.06)'}">
+        <div style="font-size:16px">${icon}</div>
+        <div style="font-size:15px;font-weight:800;color:${hot ? 'var(--lime)' : 'var(--text)'}">${days}</div>
+        <div style="font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">${label}</div>
+      </div>`;
     }
 
     function stat(label, value, blue = false) {
@@ -1629,32 +1857,96 @@
         </section>`;
     }
 
+    function districtMap(storeBoard) {
+      const pos = {
+        "3922": { x: 215, y: 118, label: "Cherry Creek" },
+        "3905": { x: 224, y: 150, label: "Park Meadows" },
+        "2595": { x: 196, y: 86,  label: "Flatiron" },
+        "242":  { x: 250, y: 112, label: "Aurora" },
+        "1026": { x: 228, y: 208, label: "Citadel" },
+        "1241": { x: 207, y: 194, label: "Chapel Hills" },
+        "3709": { x: 40,  y: 142, label: "Mesa Mall" },
+        "907":  { x: 126, y: 368, label: "Cottonwood" },
+        "1332": { x: 160, y: 354, label: "Cor. North" },
+        "3739": { x: 155, y: 382, label: "Cor. South" },
+        "123":  { x: 202, y: 310, label: "Santa Fe" },
+      };
+      const myStoreId = activeUser().storeId;
+      const pins = storeBoard.map((row, i) => {
+        const p = pos[row.id];
+        if (!p) return "";
+        const pct = row.pct || 0;
+        const clr = pct >= 100 ? "#c6ff3a" : pct >= 80 ? "#ffd700" : "#ff5050";
+        const isMe = myStoreId === row.id;
+        const r = isMe ? 9 : 7;
+        const delay = ((i * 0.4) % 2).toFixed(1);
+        return `
+          <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${clr}" stroke="none">
+            <animate attributeName="r" values="${r};${r + 13};${r + 13}" dur="2s" begin="${delay}s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.6;0;0" dur="2s" begin="${delay}s" repeatCount="indefinite"/>
+          </circle>
+          ${isMe ? `<circle cx="${p.x}" cy="${p.y}" r="14" fill="none" stroke="${clr}" stroke-width="1.5" opacity=".45"/>` : ""}
+          <circle cx="${p.x}" cy="${p.y}" r="${r}" fill="${clr}" opacity=".92" data-action="map-pin" data-store="${row.id}" style="cursor:pointer"/>
+          <text x="${p.x}" y="${p.y + 21}" text-anchor="middle" fill="rgba(255,255,255,.8)" font-size="8.5" pointer-events="none">${p.label}</text>
+          <text x="${p.x}" y="${p.y + 31}" text-anchor="middle" fill="${clr}" font-size="8" font-weight="bold" pointer-events="none">${pct}%</text>`;
+      }).join("");
+      return `
+        <div style="background:var(--card);border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.07);padding:10px 6px 8px">
+          <svg viewBox="0 0 340 492" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block">
+            <rect x="26" y="16" width="294" height="250" rx="3" fill="rgba(198,255,58,.04)" stroke="rgba(198,255,58,.22)" stroke-width="1.2"/>
+            <text x="174" y="34" text-anchor="middle" fill="rgba(255,255,255,.18)" font-size="11" font-family="Georgia,serif" letter-spacing=".12em">COLORADO</text>
+            <rect x="26" y="266" width="250" height="212" rx="3" fill="rgba(255,180,50,.03)" stroke="rgba(255,160,40,.18)" stroke-width="1.2"/>
+            <text x="151" y="462" text-anchor="middle" fill="rgba(255,255,255,.18)" font-size="11" font-family="Georgia,serif" letter-spacing=".12em">NEW MEXICO</text>
+            <text x="220" y="72" text-anchor="middle" fill="rgba(255,255,255,.13)" font-size="7" letter-spacing=".1em">DENVER METRO</text>
+            <text x="218" y="180" text-anchor="middle" fill="rgba(255,255,255,.12)" font-size="6.5" letter-spacing=".08em">COLORADO SPRINGS</text>
+            <text x="148" y="338" text-anchor="middle" fill="rgba(255,255,255,.12)" font-size="6.5" letter-spacing=".08em">ALBUQUERQUE</text>
+            ${pins}
+          </svg>
+          <div style="display:flex;gap:16px;justify-content:center;padding-top:8px;border-top:1px solid rgba(255,255,255,.06)">
+            <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--soft)"><span style="width:8px;height:8px;border-radius:50%;background:#c6ff3a;display:inline-block"></span>≥100%</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--soft)"><span style="width:8px;height:8px;border-radius:50%;background:#ffd700;display:inline-block"></span>80–99%</div>
+            <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--soft)"><span style="width:8px;height:8px;border-radius:50%;background:#ff5050;display:inline-block"></span>&lt;80%</div>
+          </div>
+        </div>`;
+    }
+
     function arenaScreen() {
       const storeBoard = buildStoreBoard(state.arenaScope);
       const individualBoard = buildIndividualBoard(state.individualMetric);
-      return `
-        <section class="screen top-space">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
-            <h1 class="serif" style="font-size:28px;margin:0">District Arena</h1>
-            ${topCluster()}
-          </div>
-          <div class="caption" style="margin-bottom:12px">11-store CO + NM roster · seeded from the existing BanterONE data.</div>
+      const leaderboardHTML = `
           <div class="neon-spacer left"></div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
             ${arenaTab("today", "Today")}
-            ${arenaTab("monthly", "Monthly")}
+            ${arenaTab("monthly", "MTD")}
             ${arenaTab("ytd", "YTD")}
           </div>
           <div class="section-row"><div class="section-title">Store Leaderboard</div><div class="post-time">${scopeLabel(state.arenaScope)}</div></div>
           ${storeBoard.map(storeArenaRow).join("")}
           <div class="neon-spacer"></div>
           <div class="section-row" style="margin-top:18px"><div class="section-title">Individual Leaderboard</div></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
-            ${metricTab("sales", "Sales")}
-            ${metricTab("piercings", "Piercings")}
-            ${metricTab("esa", "ESA")}
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:8px">
+            ${metricTab("sales", "💰 Sales")}
+            ${metricTab("avt", "🎯 Avg Ticket")}
+            ${metricTab("piercings", "🪡 Piercings")}
           </div>
-          ${individualBoard.map(individualArenaRow).join("")}
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:14px">
+            ${metricTab("stjude", "❤️ St. Jude")}
+            ${metricTab("esa", "🛡 ESA Rate")}
+            ${metricTab("climb", "📈 Daily Climb")}
+          </div>
+          ${individualBoard.map(individualArenaRow).join("")}`;
+      return `
+        <section class="screen top-space">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <h1 class="serif" style="font-size:28px;margin:0">District Arena</h1>
+            ${topCluster()}
+          </div>
+          <div class="caption" style="margin-bottom:10px">11-store CO + NM district · Tap any name to view profile.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">
+            <button class="nav-btn ${!state.mapView ? "active" : ""}" data-action="toggle-map-view" data-view="list" style="height:34px;border:1px solid rgba(255,255,255,.08)">📋 Leaderboard</button>
+            <button class="nav-btn ${state.mapView ? "active" : ""}" data-action="toggle-map-view" data-view="map" style="height:34px;border:1px solid rgba(255,255,255,.08)">🗺️ District Map</button>
+          </div>
+          ${state.mapView ? districtMap(storeBoard) : leaderboardHTML}
         </section>`;
     }
 
@@ -1725,31 +2017,199 @@
     }
 
     function buildIndividualBoard(metric) {
-      const valueKey = metric === "piercings" ? "piercings" : metric === "esa" ? "esaSales" : "sales";
       return individualMetrics.map(row => {
-        const user = users.find(person => person.email === row.email) || {};
-        return { ...row, ...user, value: row[valueKey] || 0 };
+        const u = users.find(person => person.email === row.email) || {};
+        const store = stores.find(s => s.id === u.storeId) || {};
+        const totalHours = individualMetrics.filter(m => {
+          const um = users.find(p => p.email === m.email);
+          return um && um.storeId === u.storeId;
+        }).reduce((s, m) => s + (m.hours || 6), 0);
+        const myHours = row.hours || 6;
+        const storeSub = store.id ? (dailySubmissions.find(d => d.storeId === store.id) || {}) : {};
+        const indivGoal = store.dailyPlan ? Math.round(store.dailyPlan * (myHours / Math.max(1, totalHours))) : 0;
+        const climbPct = indivGoal ? Math.round((row.sales / indivGoal) * 100) : 0;
+        const esaRate = row.esaCount && row.piercings + row.esaCount > 0
+          ? Math.round((row.esaCount / Math.max(1, Math.round(row.sales / 160))) * 100)
+          : 0;
+
+        let value = row.sales;
+        if (metric === "avt") value = row.sales ? Math.round(row.sales / Math.max(1, Math.round(row.sales / 160))) : 0;
+        if (metric === "piercings") value = row.piercings;
+        if (metric === "stjude") value = row.stjude || 0;
+        if (metric === "esa") value = esaRate;
+        if (metric === "climb") value = climbPct;
+        return { ...row, ...u, value, indivGoal, climbPct, esaRate };
       }).sort((a, b) => b.value - a.value);
     }
 
     function individualArenaRow(row, index) {
-      const moneyMetric = state.individualMetric !== "piercings";
-      const value = moneyMetric ? money(row.value) : `${row.value}`;
+      const m = state.individualMetric;
+      const isMoney = m === "sales" || m === "avt" || m === "stjude";
+      const isPct = m === "esa" || m === "climb";
+      const display = isMoney ? money(row.value) : isPct ? `${row.value}%` : `${row.value}`;
       const user = activeUser();
+      const storeName = stores.find(s => s.id === row.storeId)?.name || `Store ${row.storeId}`;
       return `
-        <div class="card leader-row">
+        <div class="card leader-row" data-action="open-profile" data-email="${row.email}" style="cursor:pointer">
           <div class="rank">${index + 1}</div>
-          <div class="avatar" style="width:32px;height:32px">${(row.name || "?").split(" ").map(part => part[0]).join("").slice(0,2)}</div>
+          <div class="avatar" style="width:32px;height:32px;font-size:10px">${(row.name || "?").split(" ").map(part => part[0]).join("").slice(0,2)}</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:700">${row.name || row.email}${row.email === user.email ? ' <span style="color:var(--lime)">· YOU</span>' : ""}</div>
-            <div class="post-time">Store ${row.storeId || "—"} · ${row.role || "—"}</div>
+            <div class="post-time">${storeName}${row.indivGoal ? ` · Goal ${money(row.indivGoal)}` : ""}</div>
           </div>
-          <div style="font-size:13px;font-weight:800;color:var(--lime);text-align:right">${value}</div>
+          <div style="font-size:14px;font-weight:800;color:var(--lime);text-align:right">${display}</div>
         </div>`;
+    }
+
+    function insightsScreen() {
+      const user = activeUser();
+      const isDM = user.storeId === "DISTRICT";
+      const isManager = isDM || user.role === "Store Manager" || user.role === "Assistant Manager";
+
+      const board = buildStoreBoard("today");
+      const focusStores = isDM ? stores : stores.filter(s => s.id === user.storeId);
+
+      function insightCard(icon, title, body, urgency = "normal") {
+        const clrMap = { high: "#e5484d", medium: "#f5a524", low: "#5b8def", normal: "var(--lime)" };
+        const bgMap = { high: "rgba(229,72,77,.08)", medium: "rgba(245,165,36,.06)", low: "rgba(91,141,239,.06)", normal: "rgba(198,255,58,.06)" };
+        return `<div class="card" style="padding:14px;border-left:3px solid ${clrMap[urgency]};background:${bgMap[urgency]}">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <span style="font-size:20px;flex-shrink:0">${icon}</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:4px">${title}</div>
+              <div style="font-size:12px;color:var(--soft);line-height:1.5">${body}</div>
+            </div>
+          </div>
+        </div>`;
+      }
+
+      const insights = [];
+
+      focusStores.forEach(store => {
+        const sub = dailySubmissions.find(d => d.storeId === store.id) || {};
+        const effectivePlan = Math.max(store.dailyPlan, store.lyDailyPlan || 0);
+        const pct = effectivePlan ? Math.round((sub.bold / effectivePlan) * 100) : 0;
+        const esaPct = sub.trans ? Math.round((sub.esa / sub.trans) * 100) : 0;
+        const poPct = sub.trans ? Math.round((sub.po / sub.trans) * 100) : 0;
+        const avtGap = 155 - (sub.avt || 0);
+        const epGoal = Math.max((store.dailyPlan > 4000 ? 5 : 4), (store.lyEP || 0) + 1);
+        const prefix = isDM ? `<strong>${store.name}:</strong> ` : "";
+
+        if (pct < 60) {
+          insights.push({ urgency: "high", icon: "🚨", title: `${store.name} — Sales Alert`, body: `${prefix}At ${pct}% of goal (${money(sub.bold)} of ${money(effectivePlan)}). Need ${money(effectivePlan - sub.bold)} more to reach plan. Coach the team on upsell opportunities and warranty conversations.` });
+        } else if (pct < 85) {
+          insights.push({ urgency: "medium", icon: "⚠️", title: `${store.name} — Below Pace`, body: `${prefix}At ${pct}% — within striking distance of plan. ${money(effectivePlan - sub.bold)} gap. Focus on increasing avg ticket and add-on conversations.` });
+        }
+
+        if (esaPct < 40) {
+          insights.push({ urgency: "high", icon: "🛡", title: `${store.name} — ESA Rate Critical`, body: `${prefix}ESA at ${esaPct}% vs 50% target. Only ${sub.esa} of ${sub.trans} transactions protected. Role-play the ESA conversation at next huddle — lead with the "lost or broken" scenario.` });
+        } else if (esaPct < 50) {
+          insights.push({ urgency: "medium", icon: "🛡", title: `${store.name} — ESA Below Target`, body: `${prefix}ESA at ${esaPct}% — just ${Math.ceil(sub.trans * 0.5) - sub.esa} more attach${Math.ceil(sub.trans * 0.5) - sub.esa !== 1 ? "es" : ""} needed to hit 50%. Remind team during the next floor check.` });
+        }
+
+        if (poPct < 15) {
+          insights.push({ urgency: "medium", icon: "💳", title: `${store.name} — Payment Options Low`, body: `${prefix}Payment Options at ${poPct}% vs 18% target. Offer the Banter credit card to every customer paying $200+. Every application counts toward district ranking.` });
+        }
+
+        if (avtGap > 20) {
+          insights.push({ urgency: "medium", icon: "🎯", title: `${store.name} — Avg Ticket Gap`, body: `${prefix}Avg ticket at ${money(sub.avt)} vs $155 target ($${avtGap} gap). Push warranty, payment options, and piercing bundles. Even one extra $50 add-on per transaction closes this gap.` });
+        }
+
+        if (sub.ep < epGoal) {
+          insights.push({ urgency: "low", icon: "🪡", title: `${store.name} — Piercing Opportunity`, body: `${prefix}${sub.ep} piercings today vs goal of ${epGoal} (must beat LY ${store.lyEP}). Is the piercing station visible and staffed? A quick reminder at the door can add 1–2 walk-up piercings.` });
+        }
+
+        if ((sub.stj || 0) < 10) {
+          insights.push({ urgency: "low", icon: "❤️", title: `${store.name} — St. Jude Reminder`, body: `${prefix}$${sub.stj || 0} collected today vs $10 goal. Coach team to mention St. Jude at every transaction — "Every dollar goes directly to kids' cancer research."` });
+        }
+      });
+
+      // District-level insights for DM
+      if (isDM && board.length) {
+        const top = board[0];
+        const bottom = board[board.length - 1];
+        if (top.pct >= 100) insights.unshift({ urgency: "normal", icon: "🏆", title: `${top.name} is Leading the District`, body: `${top.name} at ${top.pct}% with ${money(top.bold)} — ahead of plan. Consider spotlighting them in a Home feed shoutout to fuel momentum across the district.` });
+        if (bottom.pct < 70) insights.push({ urgency: "high", icon: "📉", title: `${bottom.name} Needs Attention`, body: `Last-place store at ${bottom.pct}% (${money(bottom.bold)}). Recommend a direct call with ${bottom.manager} to identify blockers — staffing, traffic, or execution gaps.` });
+
+        const belowESA = board.filter(r => {
+          const s = dailySubmissions.find(d => d.storeId === r.id) || {};
+          return s.trans && Math.round((s.esa / s.trans) * 100) < 40;
+        });
+        if (belowESA.length >= 3) insights.push({ urgency: "high", icon: "🛡", title: "District-Wide ESA Concern", body: `${belowESA.length} stores have ESA below 40%. This is a systemic issue — consider a district-wide coaching call focused on the ESA pitch and objection handling.` });
+      }
+
+      if (!insights.length) {
+        insights.push({ urgency: "normal", icon: "✅", title: "All Clear!", body: "All metrics are tracking at or above expectations. Keep up the momentum and look for stretch opportunities." });
+      }
+
+      const urgencyOrder = { high: 0, medium: 1, low: 2, normal: 3 };
+      insights.sort((a, b) => urgencyOrder[a.urgency] - urgencyOrder[b.urgency]);
+
+      return `
+        <section class="screen top-space">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+            <h1 class="serif" style="font-size:28px;margin:0">Insights</h1>
+            ${topCluster()}
+          </div>
+          <div class="caption" style="margin-bottom:16px">AI coaching recommendations · Updated live</div>
+          ${!isManager ? `<div class="card" style="padding:20px;text-align:center;color:var(--muted)"><div style="font-size:32px;margin-bottom:8px">🔒</div><div>Insights are available to managers and district managers only.</div></div>` :
+            insights.map(i => insightCard(i.icon, i.title, i.body, i.urgency)).join('<div style="height:8px"></div>')}
+
+          ${isManager ? `
+          <div class="neon-spacer" style="margin-top:20px"></div>
+          <div class="section-row"><div class="section-title">Store Snapshot</div><div class="post-time">${new Date().toLocaleDateString("en-US",{month:"short",day:"numeric"})}</div></div>
+          ${board.slice(0, isDM ? 11 : 1).map((row, i) => {
+            const s = stores.find(st => st.id === row.id) || {};
+            const sub2 = dailySubmissions.find(d => d.storeId === row.id) || {};
+            const esaPct2 = sub2.trans ? Math.round((sub2.esa / sub2.trans) * 100) : 0;
+            return `<div class="card leader-row" style="margin-bottom:6px">
+              <div class="rank">${i + 1}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:700">${row.name}</div>
+                <div class="post-time">Sales ${row.pct}% · ESA ${esaPct2}% · EP ${sub2.ep || 0} · STJ ${money(sub2.stj || 0)}</div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-size:13px;font-weight:800">${money(row.bold)}</div>
+                <div class="post-time" style="${row.pct >= 100 ? "color:var(--lime);font-weight:800" : row.pct >= 80 ? "color:#ffd700" : "color:#e5484d"}">${row.pct}%</div>
+              </div>
+            </div>`;
+          }).join("")}` : ""}
+        </section>`;
+    }
+
+    function goalUploadSheet() {
+      if (!state.goalUploadOpen) return "";
+      const user = activeUser();
+      const store = activeStore();
+      return `<div class="overlay" data-action="close-goal-upload-bg"><section class="sheet" data-stop>
+        <div class="overlay-head"><h2 class="serif" style="font-size:20px;margin:0">Upload Goal Sheet</h2><button class="close" data-action="close-goal-upload">×</button></div>
+        <div style="padding:0 4px 8px">
+          <div class="caption" style="margin-bottom:16px">Take a photo of your daily goal sheet or Plan-of-Week PDF. Numbers will be parsed automatically.</div>
+          <label style="display:block;background:var(--panel);border:2px dashed rgba(198,255,58,.3);border-radius:12px;padding:28px 16px;text-align:center;cursor:pointer;margin-bottom:14px">
+            <div style="font-size:32px;margin-bottom:8px">📋</div>
+            <div style="font-size:14px;font-weight:600;color:var(--lime)">Tap to upload</div>
+            <div class="caption" style="margin-top:4px">Photo, screenshot, or PDF</div>
+            <input type="file" accept="image/*,application/pdf" style="display:none" id="goal-sheet-upload" data-action="goal-sheet-file">
+          </label>
+          <div class="section-title" style="margin-bottom:10px">Or enter manually</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+            ${["Sales Goal","Stretch Goal","EP Goal","ESA Goal","Avg Ticket Goal","St. Jude Goal"].map((label, i) => {
+              const keys = ["manualSales","manualStretch","manualEP","manualESA","manualAVT","manualSTJ"];
+              return `<div>
+                <div style="font-size:10px;color:var(--muted);margin-bottom:4px">${label}</div>
+                <input type="number" class="dm-input" placeholder="${label}" data-goal-key="${keys[i]}" value="${state.goalOverrides?.[keys[i]] || ""}" style="width:100%;padding:8px 10px;background:var(--panel);border:1px solid rgba(255,255,255,.1);border-radius:8px;color:var(--text);font-size:13px">
+              </div>`;
+            }).join("")}
+          </div>
+          <button class="pill-btn" style="width:100%;padding:14px;background:var(--lime);color:var(--bg);font-weight:700;font-size:14px;border:none;border-radius:12px" data-action="save-goal-overrides">Save Goals</button>
+        </div>
+      </section></div>`;
     }
 
     function nav() {
       if (state.tab === "login") return "";
+      const user = activeUser();
+      const isManager = user.storeId === "DISTRICT" || user.role === "Store Manager" || user.role === "Assistant Manager";
       return `
         <nav class="pill-nav" aria-label="Primary">
           <div class="pill-nav-inner">
@@ -1758,8 +2218,8 @@
             <div class="buddy-slot">
               <button class="buddy-nav ${state.tab === "buddy" ? "active" : ""}" data-action="tab" data-tab="buddy" aria-label="Banter Buddy">B</button>
             </div>
-            <div class="nav-slot">${navButton("playbook", "Playbook")}</div>
             <div class="nav-slot">${navButton("arena", "Arena")}</div>
+            <div class="nav-slot">${isManager ? navButton("insights", "Insights") : navButton("playbook", "Playbook")}</div>
           </div>
         </nav>`;
     }
@@ -1773,12 +2233,14 @@
       if (!post) return "";
       const user = activeUser();
       const isOwn = post.authorEmail === user.email;
+      const isManager = user.storeId === "DISTRICT" || user.role === "Store Manager" || user.role === "Assistant Manager";
       return `<div class="overlay" data-action="close-post-menu-bg"><section class="sheet" data-stop>
         <div class="overlay-head"><h2 class="serif" style="font-size:20px;margin:0">Post options</h2><button class="close" data-action="close-post-menu">×</button></div>
         ${isOwn
           ? `<button class="lesson" data-action="edit-post" data-id="${post.id}"><span style="margin-right:8px">✏️</span>Edit my post</button>
              <button class="lesson" data-action="delete-post" data-id="${post.id}" style="color:#e5484d"><span style="margin-right:8px">🗑</span>Delete my post</button>`
-          : `<button class="lesson" data-action="report-post" data-id="${post.id}" style="color:#f5a524"><span style="margin-right:8px">⚠️</span>Report this post</button>`}
+          : `<button class="lesson" data-action="report-post" data-id="${post.id}" style="color:#f5a524"><span style="margin-right:8px">⚠️</span>Report this post</button>
+             ${isManager ? `<button class="lesson" data-action="delete-post" data-id="${post.id}" style="color:#e5484d"><span style="margin-right:8px">🗑</span>Remove post (manager)</button>` : ""}`}
       </section></div>`;
     }
 
@@ -1828,10 +2290,133 @@
       </section>`;
     }
 
+    function profileOverlay() {
+      if (!state.profileOpen || !state.profileEmail) return "";
+      const pu = users.find(u => u.email === state.profileEmail) || {};
+      const pm = individualMetrics.find(m => m.email === state.profileEmail) || {};
+      const store = stores.find(s => s.id === pu.storeId) || {};
+      const overrides = state.userOverrides[state.profileEmail] || {};
+      const displayName = overrides.name || pu.name || state.profileEmail;
+      const displayRole = (pu.role || "").replace("Body Piercer", "Piercing Specialist");
+      const isSelf = state.profileEmail === activeUser().email;
+      const isManager = activeUser().storeId === "DISTRICT" || activeUser().role === "Store Manager" || activeUser().role === "Assistant Manager";
+      const buddyLevel = isSelf ? state.buddy.level : Math.floor(Math.random() * 8) + 1;
+      const buddyXP = isSelf ? state.buddy.xp : Math.floor(Math.random() * 80);
+      const evolName = buddyLevel >= 50 ? "Legendary" : buddyLevel >= 25 ? "Rare Crystal Form" : buddyLevel >= 10 ? "Adult Fox" : "Baby Crystal Fox";
+      const stjudeYtd = (pm.stjude || 0) * 13;
+      const canViewCommission = isSelf || isManager;
+      const indivGoal = store.dailyPlan && pm.hours
+        ? Math.round(store.dailyPlan * (pm.hours / Math.max(1,
+            users.filter(u => u.storeId === pu.storeId).reduce((s, u) => {
+              const m2 = individualMetrics.find(m => m.email === u.email); return s + (m2 ? (m2.hours || 6) : 6);
+            }, 0)
+          ))) : 0;
+
+      return `<div class="overlay" data-action="close-profile-bg"><section class="sheet" data-stop style="max-height:88%">
+        <div class="overlay-head"><h2 class="serif" style="font-size:20px;margin:0">${isSelf ? "My Profile" : "Profile"}</h2><button class="close" data-action="close-profile">×</button></div>
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+          ${avatarEl((displayName || "?").split(" ").map(p=>p[0]).join("").slice(0,2), isSelf ? state.userPhoto : "", 56)}
+          <div>
+            <div style="font-size:17px;font-weight:700">${esc(displayName)}</div>
+            <div style="font-size:12px;color:var(--muted)">${displayRole}</div>
+            <div style="font-size:11px;color:var(--lime);margin-top:2px">${store.name || pu.storeId} · ${store.phone || ""}</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+          <div style="padding:10px;background:var(--bg);border-radius:10px;text-align:center">
+            <div style="font-size:16px;font-weight:800;color:var(--lime)">Lv.${buddyLevel}</div>
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Buddy</div>
+            <div style="font-size:9px;color:var(--eyebrow);margin-top:2px">${evolName}</div>
+          </div>
+          <div style="padding:10px;background:var(--bg);border-radius:10px;text-align:center">
+            <div style="font-size:16px;font-weight:800;color:var(--lime)">${buddyXP} XP</div>
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase">XP Today</div>
+            <div class="track" style="margin-top:4px;height:3px"><div class="fill" style="width:${Math.min(100, buddyXP)}%"></div></div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
+          <div style="padding:8px 4px;background:var(--bg);border-radius:8px;text-align:center">
+            <div style="font-size:14px;font-weight:700">${pm.sales ? money(pm.sales) : "—"}</div>
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Sales</div>
+            ${indivGoal ? `<div style="font-size:8px;color:var(--eyebrow)">Goal ${money(indivGoal)}</div>` : ""}
+          </div>
+          <div style="padding:8px 4px;background:var(--bg);border-radius:8px;text-align:center">
+            <div style="font-size:14px;font-weight:700">${pm.piercings || 0}</div>
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase">Piercings</div>
+          </div>
+          <div style="padding:8px 4px;background:var(--bg);border-radius:8px;text-align:center">
+            <div style="font-size:14px;font-weight:700">${pm.esaCount || 0}</div>
+            <div style="font-size:9px;color:var(--muted);text-transform:uppercase">ESA</div>
+          </div>
+        </div>
+        <div style="padding:10px 12px;background:rgba(229,72,77,.08);border-radius:10px;border:1px solid rgba(229,72,77,.2);margin-bottom:12px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">❤️</span>
+          <div>
+            <div style="font-size:12px;font-weight:700">St. Jude</div>
+            <div style="font-size:11px;color:var(--muted)">MTD: ${money(pm.stjude || 0)} · YTD: ${money(stjudeYtd)}</div>
+          </div>
+        </div>
+        ${canViewCommission ? `<div style="padding:10px 12px;background:rgba(198,255,58,.06);border-radius:10px;border:1px solid rgba(198,255,58,.15);margin-bottom:12px">
+          <div style="font-size:11px;font-weight:800;color:var(--lime);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Commission (Private)</div>
+          <div style="font-size:16px;font-weight:700">${pm.sales ? money(Math.round(pm.sales * 0.022)) : "—"}<span style="font-size:11px;color:var(--muted)"> est. today</span></div>
+        </div>` : ""}
+        <div style="display:flex;gap:8px">
+          ${!isSelf ? `<button class="primary" data-action="start-dm" data-email="${state.profileEmail}" style="flex:1">💬 Message</button>` : ""}
+          <button class="secondary" data-action="close-profile" style="flex:1;text-align:center">Close</button>
+        </div>
+      </section></div>`;
+    }
+
+    function messagesOverlay() {
+      if (!state.messagesOpen) return "";
+      const user = activeUser();
+      const thread = state.messageThread;
+      const allThreads = Object.entries(state.directMessages || {});
+
+      if (thread) {
+        const threadUser = users.find(u => u.email === thread) || { name: thread, email: thread };
+        const msgs = (state.directMessages[thread] || []);
+        return `<section class="full-overlay"><div class="overlay-head"><button class="close" data-action="messages-back">‹</button><h2 class="serif" style="font-size:20px;margin:0;flex:1;padding:0 8px">${esc(threadUser.name || thread)}</h2><button class="close" data-action="close-messages">×</button></div>
+          <div style="flex:1;overflow:auto;padding-bottom:80px">
+            ${msgs.length ? msgs.map(m => `
+              <div style="display:flex;justify-content:${m.from === user.email ? 'flex-end' : 'flex-start'};margin-bottom:10px">
+                <div style="max-width:80%;padding:10px 12px;border-radius:${m.from === user.email ? '16px 16px 4px 16px' : '16px 16px 16px 4px'};background:${m.from === user.email ? 'var(--lime)' : 'var(--panel)'};color:${m.from === user.email ? 'var(--bg)' : 'var(--text)'};font-size:13px;line-height:1.4">
+                  ${esc(m.text)}
+                  <div style="font-size:9px;opacity:.6;margin-top:4px;text-align:right">${m.time}</div>
+                </div>
+              </div>`).join("") : `<div style="text-align:center;color:var(--muted);font-size:13px;padding:40px 0">Start the conversation</div>`}
+          </div>
+          <div style="position:sticky;bottom:0;background:var(--sheet);padding:12px 0 4px;display:flex;gap:8px">
+            <input id="dm-input" style="flex:1;background:var(--panel);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:10px 14px;color:var(--text);font-size:13px" placeholder="Message ${esc(threadUser.name || thread)}…" value="${esc(state.composeMessage)}">
+            <button data-action="send-dm" style="width:42px;height:42px;border-radius:50%;background:var(--lime);border:0;color:var(--bg);font-size:18px;display:grid;place-items:center;cursor:pointer">↑</button>
+          </div>
+        </section>`;
+      }
+
+      return `<section class="full-overlay"><div class="overlay-head"><h2 class="serif" style="font-size:24px;margin:0">Messages</h2><button class="close" data-action="close-messages">×</button></div>
+        ${allThreads.length ? allThreads.map(([email, msgs]) => {
+          const tu = users.find(u => u.email === email) || { name: email };
+          const last = msgs[msgs.length - 1];
+          return `<button class="card leader-row" data-action="open-thread" data-email="${email}" style="width:100%;text-align:left">
+            <div class="avatar" style="width:36px;height:36px">${(tu.name || "?").split(" ").map(p=>p[0]).join("").slice(0,2)}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:700">${esc(tu.name || email)}</div>
+              <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${last ? esc(last.text) : "No messages yet"}</div>
+            </div>
+            <div style="font-size:10px;color:var(--muted)">${last ? last.time : ""}</div>
+          </button>`;
+        }).join("") : `<div style="text-align:center;color:var(--muted);font-size:13px;padding:50px 0">No messages yet.<br><span style="color:var(--lime);font-size:12px">Tap a person in Arena or Store to start a conversation.</span></div>`}
+      </section>`;
+    }
+
     function overlays() {
       return [
         state.notifOpen ? notificationsOverlay() : "",
+        state.messagesOpen ? messagesOverlay() : "",
+        state.profileOpen ? profileOverlay() : "",
         state.infoOpen ? infoSheet() : "",
+        state.evolutionOpen ? evolutionSheet() : "",
+        state.vaultOpen ? vaultSheet() : "",
         state.composeOpen ? composeSheet() : "",
         state.flairOpen ? flairSheet() : "",
         state.settingsOpen ? settingsOverlay() : "",
@@ -1839,6 +2424,7 @@
         state.train ? trainOverlay() : "",
         state.postMenuId !== null ? postMenuSheet() : "",
         state.reportsOpen ? reportsOverlay() : "",
+        state.goalUploadOpen ? goalUploadSheet() : "",
         state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ""
       ].join("");
     }
@@ -1849,6 +2435,71 @@
 
     function infoSheet() {
       return `<div class="overlay" data-action="close-info-bg"><section class="sheet" data-stop><div class="overlay-head"><h2 class="serif" style="font-size:24px;margin:0">How Buddy works</h2><button class="close" data-action="close-info">×</button></div><p><strong>Earn charges from sales.</strong> Any sale can earn a Feed charge, piercing sales can earn Train charges, and ESA or warranty sales can earn Cheer charges.</p><p><strong>Spend charges to care for Buddy.</strong> Feed and Cheer apply instantly. Train takes you through a Playbook lesson and quiz.</p><p><strong>Level up together.</strong> XP unlocks new Buddy looks, and store milestones can award bonus XP to everyone on the team.</p></section></div>`;
+    }
+
+    function evolutionSheet() {
+      const stages = [
+        { emoji: "🦊", name: "Baby Crystal Fox", levels: "L1–9", desc: "Just starting out. The crystal fox cub learning its power." },
+        { emoji: "🦊", name: "Adult Fox", levels: "L10–24", desc: "Hitting daily plans consistently. Growing stronger." },
+        { emoji: "✨", name: "Rare Crystal Form", levels: "L25–49", desc: "Crystal aura unlocked. Top performer in the making." },
+        { emoji: "🔥", name: "Legendary", levels: "L50–99", desc: "Legendary status. Floating elements, majestic glowing tail." },
+        { emoji: "👑", name: "District Champion", levels: "L100", desc: "Crowned District Royalty. The pinnacle of Banter achievement." }
+      ];
+      return `<div class="overlay" data-action="close-evolution-bg"><section class="sheet" data-stop><div class="overlay-head"><h2 class="serif" style="font-size:24px;margin:0">Evolution Path</h2><button class="close" data-action="close-evolution">×</button></div>
+        <p style="font-size:13px; color:var(--soft)">Your Buddy evolves as you perform. Every sale, piercing, ESA attach, and St. Jude donation earns XP.</p>
+        <div style="margin-top:16px">
+          ${stages.map((s, i) => `
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px; opacity:${i === 0 ? 1 : 0.7}">
+            <div style="width:44px;height:44px;border-radius:50%;background:${i === 4 ? 'rgba(255,215,0,.15)' : i === 3 ? 'rgba(229,72,77,.12)' : i === 2 ? 'rgba(91,141,239,.12)' : 'rgba(255,255,255,.05)'};display:grid;place-items:center;font-size:20px;border:1px solid rgba(255,255,255,.1)">${s.emoji}</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:700;color:${i === 4 ? 'var(--lime)' : 'var(--text)'}">${s.name}</div>
+              <div style="font-size:10px;font-weight:700;color:var(--lime);margin-bottom:2px">${s.levels}</div>
+              <div style="font-size:11px;color:var(--muted)">${s.desc}</div>
+            </div>
+            ${i > 0 ? '' : '<span style="font-size:10px;font-weight:800;color:var(--bg);background:var(--lime);padding:2px 7px;border-radius:6px">NOW</span>'}
+          </div>`).join('')}
+        </div>
+        <div style="margin-top:14px;padding:12px;background:rgba(198,255,58,.06);border-radius:12px;border:1px solid rgba(198,255,58,.15);font-size:11px;color:var(--muted);line-height:1.6">
+          <strong style="color:var(--lime)">XP earned from work:</strong><br>
+          +50 XP — St. Jude donation (per dollar)<br>
+          +30 XP — Ear piercing completed<br>
+          +25 XP — ESA / warranty attach<br>
+          +10 XP — Daily opening checklist<br>
+          +5 XP — Every $100 above daily plan
+        </div>
+      </section></div>`;
+    }
+
+    function vaultSheet() {
+      const items = state.vaultItems;
+
+      return `<div class="full-overlay" style="padding-top:40px; background:var(--bg)">
+        <div class="overlay-head" style="position:sticky; top:-40px; background:var(--bg); padding-top:16px; margin-bottom:0; z-index:10; display:flex; justify-content:space-between; align-items:center">
+          <h2 class="serif" style="font-size:28px;margin:0">Banter Vault</h2>
+          <button class="close" data-action="close-vault">×</button>
+        </div>
+        <div class="caption" style="margin-bottom:16px; margin-top:8px">Equip your Buddy with actual Banter fine jewelry. Earn new pieces by hitting sales milestones and streaks.</div>
+        
+        <div style="display:flex; gap:8px; margin-bottom:16px; overflow-x:auto; padding-bottom:8px">
+          <button class="reaction active" style="padding:6px 12px; font-size:12px; font-weight:700; border-radius:12px">All Jewelry</button>
+          <button class="reaction" style="padding:6px 12px; font-size:12px; font-weight:700; border-radius:12px">Chains</button>
+          <button class="reaction" style="padding:6px 12px; font-size:12px; font-weight:700; border-radius:12px">Earrings</button>
+          <button class="reaction" style="padding:6px 12px; font-size:12px; font-weight:700; border-radius:12px">Bracelets</button>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px">
+          ${items.map(item => `
+            <button class="card" ${item.unlocked ? `data-action="toggle-vault-item" data-id="${item.id}"` : ""} style="padding:12px; display:flex; flex-direction:column; justify-content:space-between; position:relative; overflow:hidden; text-align:left; border-color:${item.unlocked ? (item.equipped ? 'var(--lime)' : 'rgba(255,255,255,.15)') : 'rgba(255,255,255,.05)'}; background:${item.unlocked ? 'var(--panel)' : 'rgba(255,255,255,.02)'}; cursor:${item.unlocked ? 'pointer' : 'default'}">
+              ${item.equipped ? `<div style="position:absolute; top:8px; right:8px; font-size:10px; font-weight:800; color:var(--bg); background:var(--lime); padding:2px 6px; border-radius:6px">EQUIPPED</div>` : ""}
+              <div style="font-size:32px; text-align:center; padding:20px 0; opacity:${item.unlocked ? '1' : '0.3'}; filter:${item.unlocked ? 'drop-shadow(0 0 12px rgba(198,255,58,.2))' : 'grayscale(1)'}">${item.icon}</div>
+              <div>
+                <div style="font-size:12px; font-weight:700; color:${item.unlocked ? 'var(--text)' : 'var(--muted)'}; margin-bottom:4px; line-height:1.2">${item.name}</div>
+                <div style="font-size:9px; color:var(--eyebrow); line-height:1.3">${item.unlocked ? item.desc : `🔒 ${item.unlock}`}</div>
+              </div>
+            </button>
+          `).join("")}
+        </div>
+      </div>`;
     }
 
     function composeSheet() {
@@ -1889,7 +2540,7 @@
       const text = (label, value, fieldKey) => `<div class="field"><label>${label}</label><input data-field="${fieldKey}" value="${value}"></div>`;
       const map = {
         profile: [`<div class="field" style="text-align:center;padding:16px 0 8px"><div style="position:relative;display:inline-block">${avatarEl(initials(user.name), state.userPhoto, 88)}<label for="photo-upload" style="position:absolute;bottom:2px;right:2px;width:28px;height:28px;border-radius:50%;background:var(--lime);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:#000;font-weight:700">📷</label><input type="file" id="photo-upload" accept="image/*" style="display:none"></div><div style="font-size:11px;color:var(--muted);margin-top:8px">Tap camera to change photo</div></div>`, text("Full name", user.name, "name"), text("Email", user.email, "email"), info("Role", user.role), info("Store", userStoreLabel(user))],
-        notifications: [toggle("notifPush", "Push notifications", "Milestones, charges, shoutouts"), toggle("notifEmail", "Email digest", "Weekly summary email"), toggle("notifAchievements", "Achievement alerts", "When you or your store hit a milestone")],
+        notifications: [toggle("notifPush", "Push notifications", "Milestones, charges, shoutouts"), toggle("notifEmail", "Email digest", "Weekly summary email"), toggle("notifAchievements", "Achievement alerts", "When you or your store hit a milestone"), `<div class="field"><button class="primary" style="width:100%;padding:12px;background:var(--lime);color:var(--bg);font-weight:700;border:none;border-radius:10px" data-action="enable-push">Enable Browser Notifications</button><div class="post-time" style="margin-top:6px;text-align:center">${("Notification" in window && Notification.permission === "granted") ? "✅ Notifications active" : "Get personality alerts from your Buddy and store"}</div></div>`],
         appearance: [`<div class="field"><label>Theme</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="primary" style="background:var(--panel);color:var(--muted);border:1px solid rgba(255,255,255,.08)">Light</button><button class="primary">Dark</button></div></div>`, toggle("soundOn", "App sounds", "Click sound on taps and reactions")],
         language: [info("Language", "English (US)"), info("Region", "Colorado, US"), info("Time zone", "Mountain Time")],
         security: [toggle("twoFactor", "Two-factor authentication", "Require a code at sign-in"), info("Change password", "Update"), info("Last sign-in", "Today, 9:41 AM")],
@@ -1999,7 +2650,7 @@
     const overlayWrap = document.getElementById("overlay-wrap");
 
     function render() {
-      const screens = { login: loginScreen, home: homeScreen, store: storeScreen, buddy: buddyScreen, playbook: playbookScreen, arena: arenaScreen };
+      const screens = { login: loginScreen, home: homeScreen, store: storeScreen, buddy: buddyScreen, playbook: playbookScreen, arena: arenaScreen, insights: insightsScreen };
       const prevTab = screenWrap.dataset.tab;
       const savedScroll = screenWrap.scrollTop;
       screenWrap.innerHTML = screens[state.tab]();
@@ -2021,6 +2672,24 @@
           const send = app.querySelector('[data-action="send-post"]');
           if (send) send.disabled = !state.composeText.trim();
         });
+      }
+      const dmInput = document.getElementById("dm-input");
+      if (dmInput) {
+        dmInput.addEventListener("input", e => { state.composeMessage = e.target.value; });
+        dmInput.addEventListener("keydown", e => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            const text = e.target.value.trim();
+            if (text && state.messageThread) {
+              if (!state.directMessages[state.messageThread]) state.directMessages[state.messageThread] = [];
+              const now = new Date();
+              state.directMessages[state.messageThread].push({ from: activeUser().email, text, time: now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) });
+              state.composeMessage = "";
+              saveUserData(); render();
+            }
+          }
+        });
+        dmInput.focus();
       }
       const photoInput = document.getElementById("photo-upload");
       if (photoInput) {
@@ -2056,7 +2725,7 @@
         const feedCharges = Math.min(3, Math.floor(sub.bold / 500));
         const trainCharges = Math.min(2, sub.ep);
         const cheerCharges = Math.min(3, sub.esa);
-        state.tab = "home"; state.loginError = "";
+        state.tab = "buddy"; state.loginError = "";
         state.charges = { feed: feedCharges, train: trainCharges, cheer: cheerCharges };
         state.chargesEarned = true;
         render();
@@ -2070,17 +2739,53 @@
       if (action === "toggle-demo") setState({ demoOpen: !state.demoOpen });
       if (action === "tab") setState({ tab: el.dataset.tab });
       if (action === "arena-scope") setState({ arenaScope: el.dataset.scope });
+      if (action === "toggle-map-view") setState({ mapView: el.dataset.view === "map" });
+      if (action === "map-pin") setState({ mapView: false });
       if (action === "individual-metric") setState({ individualMetric: el.dataset.metric });
+      if (action === "store-scope") setState({ storeScope: el.dataset.scope });
+      if (action === "open-profile") setState({ profileOpen: true, profileEmail: el.dataset.email });
+      if (action === "close-profile" || action === "close-profile-bg") setState({ profileOpen: false, profileEmail: null });
+      if (action === "open-messages") setState({ messagesOpen: true, messageThread: null });
+      if (action === "close-messages") setState({ messagesOpen: false, messageThread: null, composeMessage: "" });
+      if (action === "messages-back") setState({ messageThread: null, composeMessage: "" });
+      if (action === "open-thread") setState({ messageThread: el.dataset.email });
+      if (action === "start-dm") {
+        const targetEmail = el.dataset.email;
+        if (!state.directMessages[targetEmail]) state.directMessages[targetEmail] = [];
+        setState({ profileOpen: false, profileEmail: null, messagesOpen: true, messageThread: targetEmail });
+      }
+      if (action === "send-dm") {
+        const input = overlayWrap.querySelector("#dm-input");
+        const text = (input ? input.value : state.composeMessage).trim();
+        if (text && state.messageThread) {
+          const thread = state.messageThread;
+          if (!state.directMessages[thread]) state.directMessages[thread] = [];
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+          state.directMessages[thread].push({ from: activeUser().email, text, time: timeStr });
+          state.composeMessage = "";
+          saveUserData(); render();
+        }
+      }
       if (action === "open-notifications") setState({ notifOpen: true, unread: 0 });
       if (action === "close-notifications") setState({ notifOpen: false });
       if (action === "open-info") setState({ infoOpen: true });
       if (action === "close-info" || action === "close-info-bg") setState({ infoOpen: false });
+      if (action === "open-evolution") setState({ evolutionOpen: true });
+      if (action === "close-evolution" || action === "close-evolution-bg") setState({ evolutionOpen: false });
+      if (action === "open-vault") setState({ vaultOpen: true });
+      if (action === "close-vault") setState({ vaultOpen: false });
+      if (action === "toggle-vault-item") {
+        const item = state.vaultItems.find(i => i.id === el.dataset.id);
+        if (item && item.unlocked) item.equipped = !item.equipped;
+        render();
+      }
       if (action === "open-settings") setState({ settingsOpen: true, settingsView: "menu" });
       if (action === "close-settings") setState({ settingsOpen: false });
       if (action === "logout") {
         unsubscribeAll();
         localStorage.removeItem("banterone_session");
-        Object.assign(state, { tab: "login", settingsOpen: false, feed: [], disciplinaryReports: [], charges: { feed: 0, train: 0, cheer: 0 }, chargesEarned: false, myReactions: {}, buddy: { level: 2, xp: 140, xpNext: 250, care: 72, spark: 45, bond: 61 } });
+        Object.assign(state, { tab: "login", settingsOpen: false, feed: [], disciplinaryReports: [], charges: { feed: 0, train: 0, cheer: 0 }, chargesEarned: false, myReactions: {}, buddy: { level: 1, xp: 0, xpNext: 100, care: 0, spark: 0, bond: 0 } });
         render();
       }
       if (action === "settings-back") setState({ settingsView: "menu" });
@@ -2097,6 +2802,18 @@
         saveState();
         render();
         showToast("Changes saved");
+      }
+      if (action === "enable-push") {
+        if (!("Notification" in window)) { showToast("Notifications not supported in this browser"); return; }
+        Notification.requestPermission().then(perm => {
+          if (perm === "granted") {
+            showToast("Notifications enabled! Your Buddy will keep you posted.");
+            scheduleBuddyNotifications();
+            render();
+          } else {
+            showToast("Notifications blocked — enable in browser settings");
+          }
+        });
       }
       if (action === "toggle-field") {
         state.toggles[el.dataset.key] = !state.toggles[el.dataset.key];
@@ -2135,6 +2852,15 @@
       if (action === "report-post") {
         setState({ postMenuId: null });
         showToast("Post reported");
+      }
+      if (action === "open-goal-upload") setState({ goalUploadOpen: true });
+      if (action === "close-goal-upload" || action === "close-goal-upload-bg") setState({ goalUploadOpen: false });
+      if (action === "save-goal-overrides") {
+        const inputs = overlayWrap.querySelectorAll("[data-goal-key]");
+        const overrides = { ...state.goalOverrides };
+        inputs.forEach(inp => { if (inp.value) overrides[inp.dataset.goalKey] = Number(inp.value); });
+        setState({ goalOverrides: overrides, goalUploadOpen: false });
+        showToast("Goals saved!");
       }
       if (action === "open-reports") setState({ reportsOpen: true });
       if (action === "close-reports") setState({ reportsOpen: false, newReportOpen: false });
