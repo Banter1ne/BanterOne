@@ -66,6 +66,25 @@
 
     @keyframes glowPulse { 0%, 100% { opacity: .6; } 50% { opacity: 1; } }
     @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 8px); } to { opacity: 1; transform: translate(-50%, 0); } }
+    @keyframes bannerSlideIn { from { opacity: 0; transform: translateY(-110%); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes bannerSlideOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-110%); } }
+    .in-app-banner {
+      position: absolute; top: 12px; left: 10px; right: 10px; z-index: 200;
+      background: rgba(20,20,20,.96); border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px; padding: 10px 12px; display: flex; align-items: center; gap: 10px;
+      backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      animation: bannerSlideIn .3s cubic-bezier(.2,.8,.4,1) forwards;
+      cursor: pointer;
+    }
+    .in-app-banner.hiding { animation: bannerSlideOut .25s ease-in forwards; }
+    .banner-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--panel); display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+    .reply-area { border-top: 1px solid rgba(255,255,255,.06); margin-top: 8px; padding-top: 8px; }
+    .reply-bubble { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+    .reply-text { background: var(--panel); border-radius: 10px; padding: 7px 10px; font-size: 12px; color: var(--body); flex: 1; line-height: 1.4; }
+    .reply-meta { font-size: 10px; font-weight: 700; color: var(--soft); margin-bottom: 2px; }
+    .reply-input-row { display: flex; gap: 6px; align-items: center; margin-top: 6px; }
+    .reply-input { flex: 1; background: var(--panel); border: 1px solid rgba(255,255,255,.08); border-radius: 20px; padding: 7px 12px; font-size: 12px; color: var(--text); outline: none; font-family: inherit; }
+    .reply-send { width: 30px; height: 30px; border-radius: 50%; background: var(--lime); border: none; display: grid; place-items: center; font-size: 14px; flex-shrink: 0; cursor: pointer; }
     @keyframes buddyBlink { 0%, 96%, 100% { opacity: 1; } 98% { opacity: 0; } }
     @keyframes buddyWag { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(3deg); } 75% { transform: rotate(-3deg); } }
     @keyframes buddyJump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
@@ -267,6 +286,8 @@
     .flair.news { color: var(--blue); background: rgba(91,141,239,.14); border: 1px solid rgba(91,141,239,.3); }
     .flair.shoutout { color: var(--lime); background: rgba(198,255,58,.12); border: 1px solid rgba(198,255,58,.3); }
     .flair.update { color: #f5a524; background: rgba(245,165,36,.14); border: 1px solid rgba(245,165,36,.3); }
+    .flair.coaching { color: #f5a524; background: rgba(245,165,36,.12); border: 1px solid rgba(245,165,36,.28); }
+    .flair.milestone { color: #c084fc; background: rgba(192,132,252,.12); border: 1px solid rgba(192,132,252,.28); }
     .pinned { margin-left: auto; color: var(--lime); font-size: 9px; font-weight: 800; letter-spacing: .08em; }
 
     .leader-row {
@@ -733,6 +754,9 @@
       editingPostId: null,
       goalUploadOpen: false,
       goalOverrides: {},
+      replyingToId: null,
+      replies: {},
+      inAppBanner: null,
       reportsOpen: false,
       newReportOpen: false,
       disciplinaryReports: [
@@ -1199,10 +1223,32 @@
       const snap = await db.collection("feed").limit(1).get();
       if (!snap.empty) return;
       const batch = db.batch();
-      const now = firebase.firestore.Timestamp.now();
+      const m = (minAgo) => firebase.firestore.Timestamp.fromMillis(Date.now() - minAgo * 60 * 1000);
       [
-        { name: "District Retail", initials: "DR", authorEmail: "dm@banter.com", timestamp: firebase.firestore.Timestamp.fromMillis(now.toMillis() - 34*60*1000), flair: "news", pinned: false, text: "Reminder: St. Jude points reset Sunday night. Celebrate every add-on and keep the customer story front and center.", reactions: { like: 12, heart: 8, laugh: 0, fire: 5, party: 4 } },
-        { name: "Brandy A.", initials: "BA", authorEmail: "brandy.a@banter.com", timestamp: firebase.firestore.Timestamp.fromMillis(now.toMillis() - 12*60*1000), flair: "shoutout", pinned: true, text: "Cherry Creek team opened strong today. Natalia landed the first warranty attach before 10 AM.", reactions: { like: 9, heart: 6, laugh: 1, fire: 4, party: 3 } }
+        // 1 — DM milestone alert (pinned)
+        { name: "Tasha Gerold", initials: "TG", authorEmail: "dm@banter.com", timestamp: m(8), flair: "news", pinned: true, text: "District hit $14,460 today — 100% of combined plan across all 11 stores. First time we've done that on a Sunday. Every single store contributed. This is what district looks like when we move as one.", reactions: { like: 18, heart: 14, laugh: 0, fire: 11, party: 9 } },
+        // 2 — Cherry Creek #1
+        { name: "Brandy A.", initials: "BA", authorEmail: "brandy.a@banter.com", timestamp: m(14), flair: "shoutout", pinned: false, text: "Cherry Creek closed at $1,780 today — 123% of plan. We had 4 ear piercings, 3 ESA attaches, and $25 toward St. Jude. Natalia carried the floor and Kimberly ran the tightest opening checklist I've seen all month. Proud of this crew.", reactions: { like: 21, heart: 16, laugh: 0, fire: 13, party: 11 } },
+        // 3 — Park Meadows chasing CC
+        { name: "Gina G.", initials: "GG", authorEmail: "gina.g@banter.com", timestamp: m(22), flair: "shoutout", pinned: false, text: "Park Meadows at $1,620 — 117% of our $1,380 plan. ESA rate hit 20% today. We're sitting at #2 in the district and coming for #1. Cherry Creek better sleep with one eye open 😤", reactions: { like: 15, heart: 9, laugh: 7, fire: 14, party: 6 } },
+        // 4 — ESA coaching from DM
+        { name: "Tasha Gerold", initials: "TG", authorEmail: "dm@banter.com", timestamp: m(41), flair: "coaching", pinned: false, text: "District ESA average is sitting at 27% today. Company expectation is 50%. Quick reminder on the pitch: ESA covers damage and breakage — not loss. Customer brings in at least 75% of the piece and we make it right. That story lands every time when you tell it at the moment of purchase, not as an afterthought.", reactions: { like: 11, heart: 5, laugh: 0, fire: 3, party: 2 } },
+        // 5 — Flatiron avg ticket
+        { name: "Evyn J.", initials: "EJ", authorEmail: "evyn.j@banter.com", timestamp: m(63), flair: "shoutout", pinned: false, text: "Flatiron avg ticket hit $152 today on 10 transactions — just $3 short of the $155 target. Team did a great job bundling piercings with earring purchases. $1,490 total, 113% of plan. We're moving in the right direction.", reactions: { like: 12, heart: 7, laugh: 0, fire: 8, party: 5 } },
+        // 6 — St. Jude district leader
+        { name: "Emily M.", initials: "EM", authorEmail: "emily.m@banter.com", timestamp: m(88), flair: "shoutout", pinned: false, text: "Coronado South leads the district in St. Jude today — $32 collected. Our goal is $10/day and we more than tripled it. Every single transaction got the ask. Team decided to make it a competition: whoever gets the last add-on of the day buys the team coffee tomorrow.", reactions: { like: 19, heart: 17, laugh: 3, fire: 10, party: 14 } },
+        // 7 — Cottonwood store record
+        { name: "Estrella M.", initials: "EM", authorEmail: "estrella.m@banter.com", timestamp: m(112), flair: "milestone", pinned: false, text: "Cottonwood just had our best Sunday of the year — $1,310 against a $1,070 plan. That's 122%. Three ear piercings, 2 ESA attaches, and the team closed back-to-back Gold transactions in the last hour. So proud of this Albuquerque crew.", reactions: { like: 16, heart: 12, laugh: 0, fire: 9, party: 8 } },
+        // 8 — Chapel Hills streak
+        { name: "Steven V.", initials: "SV", authorEmail: "steven.v@banter.com", timestamp: m(145), flair: "milestone", pinned: false, text: "Chapel Hills is now on a 4-day sales streak — hit plan every day this week. $1,240 today on a $1,100 goal. The team has been setting a daily stretch target 30% above plan and chasing it. Starting to become habit.", reactions: { like: 14, heart: 10, laugh: 0, fire: 12, party: 7 } },
+        // 9 — Aurora avg ticket improvement
+        { name: "Hannah F.", initials: "HF", authorEmail: "hannah.f@banter.com", timestamp: m(178), flair: "coaching", pinned: false, text: "Aurora avg ticket went from $138 last week to $144 today. Still below the $155 target but the trend is real. What moved it: we started asking about the occasion at the beginning of every conversation instead of jumping straight to product. Sharing this because it's working and the district should try it.", reactions: { like: 17, heart: 9, laugh: 0, fire: 6, party: 4 } },
+        // 10 — Mesa Mall comeback
+        { name: "Dionne F.", initials: "DF", authorEmail: "dionne.f@banter.com", timestamp: m(215), flair: "shoutout", pinned: false, text: "Mesa Mall bounced back today — $1,050 on a $880 plan, that's 119%. We were the smallest store by plan in the district and we still beat 4 bigger stores today. Grand Junction represents 💪 Proud of every associate who showed up and gave everything.", reactions: { like: 22, heart: 18, laugh: 0, fire: 16, party: 12 } },
+        // 11 — Piercing university update
+        { name: "Tasha Gerold", initials: "TG", authorEmail: "dm@banter.com", timestamp: m(260), flair: "news", pinned: false, text: "District piercing total for today: 27 units across 11 stores. Our combined daily goal is 44 (beats last year). That's 61% — room to grow. Reminder that Piercing University runs July 7–17. Every store should have at least one associate completing a module this week. Check the Playbook for the full schedule.", reactions: { like: 9, heart: 4, laugh: 0, fire: 3, party: 2 } },
+        // 12 — Brandy Gold rate
+        { name: "Brandy A.", initials: "BA", authorEmail: "brandy.a@banter.com", timestamp: m(310), flair: "coaching", pinned: false, text: "Quick tip from Cherry Creek: Gold rate improved when we stopped treating it as a separate conversation. We lead with the metal naturally — 'this is 10K gold, which means it holds up to daily wear' — and let the customer ask about alternatives rather than us offering them first. Gold ≥80% is the expectation. We hit 82% today.", reactions: { like: 13, heart: 8, laugh: 0, fire: 7, party: 3 } }
       ].forEach(p => batch.set(db.collection("feed").doc(), p));
       batch.commit().catch(console.error);
     }
@@ -1472,6 +1518,9 @@
 
     function postCard(post) {
       const isOwn = post.authorEmail === activeUser().email;
+      const postReplies = state.replies[post.id] || [];
+      const isReplying = state.replyingToId === post.id;
+      const totalReactions = Object.values(post.reactions || {}).reduce((s, v) => s + v, 0);
       return `
         <article class="card post">
           <div class="post-head">
@@ -1490,7 +1539,23 @@
             ${reaction(post.id, "laugh", "😂", post.reactions.laugh)}
             ${reaction(post.id, "fire", "🔥", post.reactions.fire)}
             ${reaction(post.id, "party", "🎉", post.reactions.party)}
+            <button class="reaction${isReplying ? " active" : ""}" data-action="toggle-reply" data-id="${post.id}" style="margin-left:auto">
+              <span>💬</span><span>${postReplies.length || ""}</span>
+            </button>
           </div>
+          ${postReplies.length || isReplying ? `
+          <div class="reply-area">
+            ${postReplies.map(r => `
+              <div class="reply-bubble">
+                ${avatarEl((r.name || "?").split(" ").map(p => p[0]).join("").slice(0,2), r.authorPhoto || "", 26)}
+                <div class="reply-text"><div class="reply-meta">${esc(r.name)}</div>${esc(r.text)}</div>
+              </div>`).join("")}
+            ${isReplying ? `
+            <div class="reply-input-row">
+              <input class="reply-input" id="reply-input-${post.id}" placeholder="Reply to ${esc(post.name.split(" ")[0])}…" autocomplete="off">
+              <button class="reply-send" data-action="send-reply" data-id="${post.id}">↑</button>
+            </div>` : ""}
+          </div>` : ""}
         </article>`;
     }
 
@@ -2203,6 +2268,29 @@
         </section>`;
     }
 
+    let bannerTimer = null;
+    function showInAppBanner(icon, title, body, action = null) {
+      if (bannerTimer) clearTimeout(bannerTimer);
+      state.inAppBanner = { icon, title, body, action, hiding: false };
+      render();
+      bannerTimer = setTimeout(() => {
+        if (state.inAppBanner) { state.inAppBanner = { ...state.inAppBanner, hiding: true }; render(); }
+        setTimeout(() => { state.inAppBanner = null; render(); }, 260);
+      }, 4000);
+    }
+
+    function inAppBannerEl() {
+      const b = state.inAppBanner;
+      return `<div class="in-app-banner${b.hiding ? " hiding" : ""}" data-action="banner-tap">
+        <div class="banner-icon">${b.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:12px;font-weight:700;color:var(--text);margin-bottom:1px">${esc(b.title)}</div>
+          <div style="font-size:11px;color:var(--soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(b.body)}</div>
+        </div>
+        <button style="background:none;border:none;color:var(--muted);font-size:16px;padding:0 0 0 6px" data-action="dismiss-banner">×</button>
+      </div>`;
+    }
+
     function goalUploadSheet() {
       if (!state.goalUploadOpen) return "";
       const user = activeUser();
@@ -2449,6 +2537,7 @@
         state.postMenuId !== null ? postMenuSheet() : "",
         state.reportsOpen ? reportsOverlay() : "",
         state.goalUploadOpen ? goalUploadSheet() : "",
+        state.inAppBanner ? inAppBannerEl() : "",
         state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ""
       ].join("");
     }
@@ -2715,6 +2804,10 @@
         });
         dmInput.focus();
       }
+      if (state.replyingToId) {
+        const ri = document.getElementById(`reply-input-${state.replyingToId}`);
+        if (ri) { ri.focus(); ri.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); app.querySelector(`[data-action="send-reply"][data-id="${state.replyingToId}"]`)?.click(); } }); }
+      }
       const photoInput = document.getElementById("photo-upload");
       if (photoInput) {
         photoInput.addEventListener("change", async e => {
@@ -2849,6 +2942,7 @@
         const rKey = `${postId}_${key}`;
         const post = state.feed.find(p => p.id === postId);
         if (post) {
+          const me = activeUser();
           if (state.myReactions[rKey]) {
             post.reactions[key] = (post.reactions[key] || 1) - 1;
             delete state.myReactions[rKey];
@@ -2857,9 +2951,35 @@
             post.reactions[key] = (post.reactions[key] || 0) + 1;
             state.myReactions[rKey] = true;
             db.collection("feed").doc(postId).update({ [`reactions.${key}`]: firebase.firestore.FieldValue.increment(1) }).catch(console.error);
+            if (post.authorEmail !== me.email) {
+              const emojiMap = { like: "👍", heart: "❤️", laugh: "😂", fire: "🔥", party: "🎉" };
+              showInAppBanner(emojiMap[key] || "👍", `${me.name} reacted to ${post.name.split(" ")[0]}'s post`, post.text.slice(0, 60) + (post.text.length > 60 ? "…" : ""));
+            }
           }
           saveUserData(); render();
         }
+      }
+      if (action === "toggle-reply") {
+        const id = el.dataset.id;
+        setState({ replyingToId: state.replyingToId === id ? null : id });
+      }
+      if (action === "send-reply") {
+        const id = el.dataset.id;
+        const input = document.getElementById(`reply-input-${id}`);
+        const text = input ? input.value.trim() : "";
+        if (!text) return;
+        const me = activeUser();
+        const post = state.feed.find(p => p.id === id);
+        if (!state.replies[id]) state.replies[id] = [];
+        state.replies[id].push({ name: me.name, authorEmail: me.email, text, time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) });
+        if (post && post.authorEmail !== me.email) {
+          showInAppBanner("💬", `${me.name} replied to ${post.name.split(" ")[0]}'s post`, text.slice(0, 60) + (text.length > 60 ? "…" : ""));
+        }
+        setState({ replyingToId: null });
+      }
+      if (action === "dismiss-banner" || action === "banner-tap") {
+        if (bannerTimer) clearTimeout(bannerTimer);
+        state.inAppBanner = null; render();
       }
       if (action === "go-store") setState({ tab: "store" });
       if (action === "go-arena") setState({ tab: "arena" });
