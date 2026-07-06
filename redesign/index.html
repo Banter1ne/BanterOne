@@ -737,6 +737,9 @@
         { id: "district-crown", icon: "👑", name: "District Crown", desc: "Reserved for the #1 store for a full month", unlock: "#1 store for a full month", unlocked: false, equipped: false, hidden: true }
       ],
       myReactions: {},
+      reactionUsers: {},
+      reactionsSheetPostId: null,
+      reactionsSheetKey: null,
       userOverrides: {},
       districtName: "District 4 — Colorado",
       arenaScope: "today",
@@ -1063,8 +1066,8 @@
 
     const users = [
       { email: "dm@banter.com", name: "Tasha Gerold", storeId: "DISTRICT", role: "District Manager" },
-      { email: "brandy.a@banter.com", name: "Brandy A.", storeId: "3922", role: "Store Manager" },
-      { email: "kimberly.t@banter.com", name: "Kimberly Toledo", storeId: "3922", role: "Assistant Manager" },
+      { email: "brandy.a@banter.com", name: "Brandy A.", storeId: "3922", role: "Store Manager", employeeNumber: "3922-001" },
+      { email: "kimberly.t@banter.com", name: "Kimberly Toledo", storeId: "3922", role: "Assistant Manager", employeeNumber: "3922-002" },
       { email: "trinity.b@banter.com", name: "Trinity B.", storeId: "123", role: "Store Manager" },
       { email: "hannah.f@banter.com", name: "Hannah F.", storeId: "242", role: "Store Manager" },
       { email: "estrella.m@banter.com", name: "Estrella M.", storeId: "907", role: "Store Manager" },
@@ -1075,22 +1078,20 @@
       { email: "dionne.f@banter.com", name: "Dionne F.", storeId: "3709", role: "Store Manager" },
       { email: "emily.m@banter.com", name: "Emily M.", storeId: "3739", role: "Store Manager" },
       { email: "gina.g@banter.com", name: "Gina G.", storeId: "3905", role: "Store Manager" },
-      { email: "cc_assoc1@banter.com", name: "Jasmine Rivera", storeId: "3922", role: "Sales Associate" },
-      { email: "cc_assoc2@banter.com", name: "Marcus Chen", storeId: "3922", role: "Sales Associate" },
-      { email: "cc_piercer@banter.com", name: "Taylor Brooks", storeId: "3922", role: "Piercing Specialist" },
-      { email: "pm_assoc1@banter.com", name: "Destiny Williams", storeId: "3905", role: "Sales Associate" },
-      { email: "pm_assoc2@banter.com", name: "Ryan Kowalski", storeId: "3905", role: "Sales Associate" },
-      { email: "pm_piercer@banter.com", name: "Park Meadows Piercer", storeId: "3905", role: "Body Piercer" },
-      { email: "aurora_assoc1@banter.com", name: "Sofia Reyes", storeId: "242", role: "Sales Associate" },
-      { email: "aurora_assoc2@banter.com", name: "Derek Thompson", storeId: "242", role: "Sales Associate" },
-      { email: "chapel_assoc1@banter.com", name: "Aaliyah Johnson", storeId: "1241", role: "Sales Associate" },
-      { email: "chapel_assoc2@banter.com", name: "Nathan Park", storeId: "1241", role: "Sales Associate" }
+      { email: "carolina@banter.com", name: "Carolina", storeId: "3922", role: "Sales Associate", employeeNumber: "3922-003" },
+      { email: "cali@banter.com", name: "Cali", storeId: "3922", role: "Sales Associate", employeeNumber: "3922-004" },
+      { email: "pm_assoc1@banter.com", name: "Destiny Williams", storeId: "3905", role: "Sales Associate", employeeNumber: "3905-003" },
+      { email: "pm_assoc2@banter.com", name: "Ryan Kowalski", storeId: "3905", role: "Sales Associate", employeeNumber: "3905-004" },
+      { email: "pm_piercer@banter.com", name: "Park Meadows Piercer", storeId: "3905", role: "Piercing Specialist", employeeNumber: "3905-005" },
+      { email: "aurora_assoc1@banter.com", name: "Sofia Reyes", storeId: "242", role: "Sales Associate", employeeNumber: "242-003" },
+      { email: "aurora_assoc2@banter.com", name: "Derek Thompson", storeId: "242", role: "Sales Associate", employeeNumber: "242-004" },
+      { email: "chapel_assoc1@banter.com", name: "Aaliyah Johnson", storeId: "1241", role: "Sales Associate", employeeNumber: "1241-003" },
+      { email: "chapel_assoc2@banter.com", name: "Nathan Park", storeId: "1241", role: "Sales Associate", employeeNumber: "1241-004" }
     ];
 
     const individualMetrics = [
-      { email: "cc_assoc1@banter.com", sales: 1250, piercingSales: 120, esaSales: 180, piercings: 3, esaCount: 2, stjude: 18, hours: 6.5 },
-      { email: "cc_assoc2@banter.com", sales: 890, piercingSales: 60, esaSales: 120, piercings: 2, esaCount: 1, stjude: 10, hours: 5 },
-      { email: "cc_piercer@banter.com", sales: 0, piercingSales: 480, esaSales: 0, piercings: 12, esaCount: 0, stjude: 8, hours: 7 },
+      { email: "carolina@banter.com", sales: 1250, piercingSales: 120, esaSales: 180, piercings: 3, esaCount: 2, stjude: 18, hours: 6.5 },
+      { email: "cali@banter.com", sales: 890, piercingSales: 60, esaSales: 120, piercings: 2, esaCount: 1, stjude: 10, hours: 5 },
       { email: "brandy.a@banter.com", sales: 1620, piercingSales: 90, esaSales: 240, piercings: 2, esaCount: 3, stjude: 25, hours: 8 },
       { email: "kimberly.t@banter.com", sales: 1420, piercingSales: 75, esaSales: 210, piercings: 2, esaCount: 2, stjude: 20, hours: 6 },
       { email: "pm_assoc1@banter.com", sales: 1050, piercingSales: 90, esaSales: 150, piercings: 2, esaCount: 2, stjude: 15, hours: 6 },
@@ -1552,6 +1553,7 @@
             ${reaction(post.id, "laugh", "😂", post.reactions.laugh)}
             ${reaction(post.id, "fire", "🔥", post.reactions.fire)}
             ${reaction(post.id, "party", "🎉", post.reactions.party)}
+            ${totalReactions > 0 ? `<button class="reaction" data-action="show-reactions" data-id="${post.id}" style="font-size:10px;color:var(--muted);padding:4px 8px" title="See who reacted">${totalReactions} reaction${totalReactions !== 1 ? "s" : ""}</button>` : ""}
             <button class="reaction${isReplying ? " active" : ""}" data-action="toggle-reply" data-id="${post.id}" style="margin-left:auto">
               <span>💬</span><span>${postReplies.length || ""}</span>
             </button>
@@ -1574,7 +1576,36 @@
 
     function reaction(id, key, emoji, count) {
       const active = state.myReactions[`${id}_${key}`] ? " active" : "";
-      return `<button class="reaction${active}" data-action="react" data-id="${id}" data-key="${key}"><span>${emoji}</span><span>${count}</span></button>`;
+      return `<button class="reaction${active}" data-action="react" data-id="${id}" data-key="${key}" title="${(state.reactionUsers[`${id}_${key}`] || []).join(', ') || 'No reactions yet'}"><span>${emoji}</span><span>${count}</span></button>`;
+    }
+
+    function reactionsSheet() {
+      if (!state.reactionsSheetPostId) return "";
+      const post = state.feed.find(p => p.id === state.reactionsSheetPostId);
+      if (!post) return "";
+      const emojiMap = { like: "👍", heart: "❤️", laugh: "😂", fire: "🔥", party: "🎉" };
+      const allReactions = Object.entries(post.reactions || {})
+        .filter(([, count]) => count > 0)
+        .map(([key, count]) => {
+          const names = state.reactionUsers[`${post.id}_${key}`] || [];
+          return { key, emoji: emojiMap[key], count, names };
+        });
+      return `<div class="overlay" data-action="close-reactions-sheet-bg"><section class="sheet" data-stop>
+        <div class="overlay-head"><h2 class="serif" style="font-size:20px;margin:0">Reactions</h2><button class="close" data-action="close-reactions-sheet">×</button></div>
+        <div style="padding:0 4px 16px">
+          ${allReactions.length === 0 ? `<div class="caption" style="text-align:center;padding:20px">No reactions yet</div>` :
+            allReactions.map(r => `
+            <div style="margin-bottom:12px">
+              <div style="font-size:13px;font-weight:700;margin-bottom:6px">${r.emoji} ${r.count} reaction${r.count !== 1 ? 's' : ''}</div>
+              ${r.names.length > 0
+                ? r.names.map(name => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+                    <div class="avatar" style="width:28px;height:28px;font-size:10px">${name.split(" ").map(p=>p[0]).join("").slice(0,2)}</div>
+                    <div style="font-size:13px">${esc(name)}</div>
+                  </div>`).join("")
+                : `<div class="caption">—</div>`}
+            </div>`).join("")}
+        </div>
+      </section></div>`;
     }
 
     function storeScreen() {
@@ -1666,6 +1697,48 @@
             </div>
           </div>
 
+          ${(() => {
+            const isAssociate = user.role === "Sales Associate" || user.role === "Piercing Specialist";
+            if (!isAssociate) return "";
+            const me = individualMetricFor(user.email);
+            const myGoal = totalTeamHours > 0 ? Math.round(store.dailyPlan * ((me.hours || 6) / totalTeamHours)) : 0;
+            const myPct = myGoal ? Math.round((me.sales / myGoal) * 100) : 0;
+            const pctClr = myPct >= 100 ? "var(--lime)" : myPct >= 80 ? "var(--text)" : "var(--red)";
+            return `
+            <div class="neon-spacer compact"></div>
+            <div class="section-title" style="margin-bottom:8px">My Sales Today</div>
+            <div class="card" style="padding:14px;margin-bottom:14px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div>
+                  <div style="font-size:22px;font-weight:800;color:${pctClr}">${money(me.sales || 0)}</div>
+                  <div style="font-size:10px;color:var(--muted);margin-top:2px">Goal ${money(myGoal)} · <span style="color:${pctClr}">${myPct}%</span></div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:11px;color:var(--muted)">Emp #${user.employeeNumber || "—"}</div>
+                  <div style="font-size:11px;color:var(--muted)">Store #${store.id}</div>
+                  <div style="font-size:11px;color:var(--muted)">${me.hours || 6}h today</div>
+                </div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px">
+                <div style="text-align:center;padding:6px 4px;background:var(--bg);border-radius:8px">
+                  <div style="font-size:13px;font-weight:700">${me.piercings || 0}</div>
+                  <div style="font-size:8px;color:var(--muted);text-transform:uppercase">Pierce</div>
+                </div>
+                <div style="text-align:center;padding:6px 4px;background:var(--bg);border-radius:8px">
+                  <div style="font-size:13px;font-weight:700">${me.esaCount || 0}</div>
+                  <div style="font-size:8px;color:var(--muted);text-transform:uppercase">ESA</div>
+                </div>
+                <div style="text-align:center;padding:6px 4px;background:var(--bg);border-radius:8px">
+                  <div style="font-size:13px;font-weight:700">${money(me.stjude || 0)}</div>
+                  <div style="font-size:8px;color:var(--muted);text-transform:uppercase">St. Jude</div>
+                </div>
+                <div style="text-align:center;padding:6px 4px;background:var(--bg);border-radius:8px">
+                  <div style="font-size:13px;font-weight:700">${me.piercingSales ? money(me.piercingSales) : "—"}</div>
+                  <div style="font-size:8px;color:var(--muted);text-transform:uppercase">Pierce $</div>
+                </div>
+              </div>
+            </div>`;
+          })()}
           <div class="neon-spacer compact"></div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px">
             <button class="nav-btn ${state.storeScope === 'daily' ? 'active' : ''}" data-action="store-scope" data-scope="daily" style="height:32px;border:1px solid rgba(255,255,255,.08)">Daily</button>
@@ -1761,6 +1834,7 @@
                 <div style="flex:1">
                   <div style="font-size:13px;font-weight:700">${tm.name}</div>
                   <div style="font-size:10px;color:var(--muted)">${displayRole} · ${tm.hours || 6}h today</div>
+                  ${tm.employeeNumber ? `<div style="font-size:9px;color:var(--eyebrow);margin-top:1px">Store #${store.id} · Emp #${tm.employeeNumber}</div>` : `<div style="font-size:9px;color:var(--eyebrow);margin-top:1px">Store #${store.id}</div>`}
                 </div>
                 <div style="text-align:right">
                   <div style="font-size:14px;font-weight:700;color:${goalClr}">${money(tm.sales)}</div>
@@ -2574,6 +2648,7 @@
         state.postMenuId !== null ? postMenuSheet() : "",
         state.reportsOpen ? reportsOverlay() : "",
         state.goalUploadOpen ? goalUploadSheet() : "",
+        state.reactionsSheetPostId ? reactionsSheet() : "",
         state.inAppBanner ? inAppBannerEl() : "",
         state.toast ? `<div class="toast">${esc(state.toast)}</div>` : ""
       ].join("");
@@ -2980,13 +3055,16 @@
         const post = state.feed.find(p => p.id === postId);
         if (post) {
           const me = activeUser();
+          if (!state.reactionUsers[rKey]) state.reactionUsers[rKey] = [];
           if (state.myReactions[rKey]) {
             post.reactions[key] = (post.reactions[key] || 1) - 1;
             delete state.myReactions[rKey];
+            state.reactionUsers[rKey] = state.reactionUsers[rKey].filter(n => n !== me.name);
             db.collection("feed").doc(postId).update({ [`reactions.${key}`]: firebase.firestore.FieldValue.increment(-1) }).catch(console.error);
           } else {
             post.reactions[key] = (post.reactions[key] || 0) + 1;
             state.myReactions[rKey] = true;
+            if (!state.reactionUsers[rKey].includes(me.name)) state.reactionUsers[rKey].push(me.name);
             db.collection("feed").doc(postId).update({ [`reactions.${key}`]: firebase.firestore.FieldValue.increment(1) }).catch(console.error);
             if (post.authorEmail !== me.email) {
               const emojiMap = { like: "👍", heart: "❤️", laugh: "😂", fire: "🔥", party: "🎉" };
@@ -2995,6 +3073,12 @@
           }
           saveUserData(); render();
         }
+      }
+      if (action === "show-reactions") {
+        setState({ reactionsSheetPostId: el.dataset.id });
+      }
+      if (action === "close-reactions-sheet" || action === "close-reactions-sheet-bg") {
+        setState({ reactionsSheetPostId: null });
       }
       if (action === "toggle-reply") {
         const id = el.dataset.id;
